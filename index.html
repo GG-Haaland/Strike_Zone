@@ -1433,6 +1433,15 @@
     transition: max-height 0.35s ease;
   }
   .bowlers-grid-wrap.collapsed { max-height: 0 !important; }
+  .bowler-footer {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 12px 14px;
+    border-top: 1px solid var(--border2);
+    background: var(--panel);
+  }
 
   /* ─── LOCK IN BUTTON ─── */
   .lock-in-btn {
@@ -1569,9 +1578,6 @@
   </div>
   <div class="controls-wrap" id="controls-wrap">
     <div class="game-controls">
-      <button class="ctrl-btn" onclick="addBowler()">+ Add Bowler</button>
-      <button class="ctrl-btn danger" onclick="resetGame()">↺ Reset Game</button>
-      <div style="width:1px;height:22px;background:var(--border2);margin:0 4px;"></div>
       <div class="mode-toggle">
         <button class="mode-btn active" id="mode-btn-frame" onclick="setScoringMode('frame')">Frame by Frame</button>
         <button class="mode-btn" id="mode-btn-endgame" onclick="setScoringMode('endgame')">End Game</button>
@@ -1584,11 +1590,7 @@
           onchange="setWeek(+this.value)" />
         <button class="week-btn" onclick="changeWeek(1)">▶</button>
       </div>
-      <div id="lock-in-wrap">
-        <button class="lock-in-btn" id="lock-in-btn" onclick="lockGame()">🔒 Lock In Order</button>
-      </div>
       <button class="save-season-btn" onclick="saveGameToSeason()">✓ Save to Season</button>
-      <div class="game-status">Bowlers: <strong id="bowler-count">0</strong> / 6</div>
     </div>
   </div>
 </div>
@@ -1601,6 +1603,14 @@
   </div>
   <div class="bowlers-grid-wrap" id="bowlers-grid-wrap">
     <div class="bowlers-grid" id="bowlers-grid"></div>
+    <div class="bowler-footer">
+      <button class="ctrl-btn" onclick="addBowler()">+ Add Bowler</button>
+      <button class="ctrl-btn danger" onclick="resetGame()">↺ Reset Game</button>
+      <div id="lock-in-wrap">
+        <button class="lock-in-btn" id="lock-in-btn" onclick="lockGame()">🔒 Lock In Order</button>
+      </div>
+      <div class="game-status">Bowlers: <strong id="bowler-count">0</strong> / 6</div>
+    </div>
   </div>
 </div>
 
