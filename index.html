@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Strike Zone — Bowling League Tracker</title>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600;700&family=Lora:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
@@ -43,6 +46,12 @@
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
+  /* Prevent iOS auto-zoom on input focus (needs font-size ≥ 16px on inputs) */
+  input, select, textarea { font-size: max(16px, 1em); }
+  /* Override back to designed size on larger screens */
+  @media (min-width: 768px) {
+    input, select, textarea { font-size: inherit; }
+  }
 
   body {
     background: var(--bg);
@@ -1145,13 +1154,212 @@
   ::-webkit-scrollbar-track { background: var(--bg); }
   ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
 
-  /* ─── RESPONSIVE ─── */
-  @media (max-width: 720px) {
-    .team-board { padding: 16px 18px; }
+  /* ═══════════════════════════════════════════
+     RESPONSIVE — mobile-first
+     Default styles = phones (≤479px)
+     480px+  = large phones / landscape
+     768px+  = tablets
+     1024px+ = desktop (original design)
+  ═══════════════════════════════════════════ */
+
+  /* ── MOBILE BASE (default, ≤479px) ── */
+
+  /* Header */
+  header { padding: 0 14px; height: 48px; }
+  .logo { font-size: 1.25rem; letter-spacing: 3px; }
+  .league-badge { display: none; }
+  #clock { display: none; }
+
+  /* Team board */
+  .team-board {
+    padding: 10px 12px;
+    grid-template-columns: 1fr 56px 1fr;
+    gap: 4px;
+  }
+  .team-name-input {
+    font-size: 0.85rem;
+    letter-spacing: 1px;
+    width: 100%;
+    max-width: 130px;
+  }
+  .team-block.right .team-name-input { max-width: 130px; }
+  .score-main { font-size: 1.9rem; }
+  .score-with-hcp { font-size: 0.75rem; }
+  .score-hcp-label { font-size: 0.42rem; }
+  .vs-text { font-size: 0.75rem; }
+  .frame-label { font-size: 0.4rem; letter-spacing: 1px; }
+  .divider-line { height: 18px; }
+  .hcp-diff-badge { font-size: 0.45rem; padding: 2px 5px; letter-spacing: 1px; }
+  .team-name-row { gap: 4px; }
+
+  /* Lane */
+  #lane-container { padding: 8px 12px; }
+  .lane-wrap { height: 56px; }
+
+  /* Streak bar */
+  .streak-bar { padding: 7px 14px; gap: 10px; }
+
+  /* Game controls: wrap to multiple rows */
+  .game-controls {
+    flex-wrap: wrap;
+    padding: 8px 12px;
+    gap: 6px;
+  }
+  .ctrl-btn {
+    font-size: 0.62rem;
+    padding: 0 12px;
+    height: 36px;
+    min-height: 36px;
+  }
+  /* Mode toggle spans full width on mobile, sits on its own row */
+  .mode-toggle { order: 10; width: 100%; }
+  .mode-btn { flex: 1; height: 36px; font-size: 0.6rem; padding: 0 8px; }
+  /* Week + save on their own row */
+  .week-control { order: 11; }
+  .save-season-btn { order: 11; height: 36px; font-size: 0.62rem; padding: 0 12px; }
+  .game-status { order: 2; margin-left: auto; font-size: 0.55rem; }
+  /* Hide the cosmetic dividers in controls on mobile */
+  .game-controls > div[style*="width:1px"] { display: none; }
+
+  /* Main content */
+  .main-content { padding: 10px 10px; gap: 12px; }
+  .bowlers-grid { grid-template-columns: 1fr; gap: 10px; }
+
+  /* Card header: name on top row, controls wrap below */
+  .card-header {
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 9px 12px;
+    align-items: flex-start;
+  }
+  .bowler-name-input {
+    width: 100%;
+    font-size: 0.85rem;
+  }
+  .roster-select {
+    width: 100%;
+    min-width: unset;
+    font-size: 0.78rem;
+  }
+  .card-controls {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .active-toggle {
+    min-height: 34px;
+    padding: 0 10px;
+    font-size: 0.58rem;
+  }
+  .remove-btn { width: 28px; height: 28px; }
+
+  /* Score sheet */
+  .score-sheet { padding: 8px 10px 6px; }
+  .frame-cell { width: 30px; height: 38px; }
+  .frame-cell.tenth-frame { width: 48px; }
+  .roll-badge { width: 14px; height: 14px; font-size: 0.55rem; }
+  .frame-score { font-size: 0.58rem; height: 16px; }
+  .score-table th { font-size: 0.48rem; padding: 3px 1px; }
+  .total-cell { font-size: 0.78rem; }
+  .hcp-total-cell { font-size: 0.6rem; }
+
+  /* Input panel — bigger touch targets */
+  .input-panel { padding: 10px 12px; }
+  .input-row { flex-wrap: wrap; gap: 5px; }
+  .frame-indicator { width: 100%; margin-bottom: 2px; padding-right: 0; border-right: none; }
+  .throw-btn {
+    min-height: 44px;
+    padding: 0 10px;
+    font-size: 0.8rem;
+    flex: 0 0 auto;
+  }
+  .clear-frame-btn { min-height: 44px; padding: 0 12px; font-size: 0.62rem; }
+
+  /* End game entry */
+  .endgame-body { padding: 14px 12px; gap: 14px; }
+  .endgame-score-input { font-size: 1.5rem; width: 90px; }
+  .endgame-hcp-val { font-size: 1.5rem; }
+
+  /* Week control sizing */
+  .week-label { padding: 0 8px; font-size: 0.52rem; height: 36px; }
+  .week-btn { width: 34px; height: 36px; font-size: 0.75rem; }
+  .week-num { height: 36px; font-size: 0.9rem; width: 46px; }
+
+  /* Season section */
+  .season-section { padding: 14px 10px 24px; }
+  .season-table { font-size: 0.65rem; }
+  .season-table th { font-size: 0.48rem; padding: 5px 6px; }
+  .season-table td { padding: 6px 7px; }
+
+  /* ── 480px+ (large phones, landscape) ── */
+  @media (min-width: 480px) {
+    header { padding: 0 20px; height: 52px; }
+    .logo { font-size: 1.5rem; letter-spacing: 4px; }
+
+    .team-board { padding: 14px 18px; grid-template-columns: 1fr 68px 1fr; }
+    .team-name-input { max-width: 170px; font-size: 1.1rem; }
     .score-main { font-size: 2.2rem; }
-    .main-content { padding: 14px 12px; }
-    .bowlers-grid { grid-template-columns: 1fr; }
-    .team-name-input { width: 150px; font-size: 1.2rem; }
+
+    .mode-toggle { width: auto; }
+    .mode-btn { flex: unset; }
+    .game-controls { flex-wrap: wrap; }
+
+    .card-header { flex-wrap: nowrap; align-items: center; }
+    .bowler-name-input { width: 140px; }
+    .roster-select { width: auto; min-width: 128px; }
+    .card-controls { width: auto; flex-wrap: nowrap; }
+
+    .frame-cell { width: 34px; }
+    .frame-cell.tenth-frame { width: 54px; }
+  }
+
+  /* ── 768px+ (tablets) ── */
+  @media (min-width: 768px) {
+    header { padding: 0 28px; height: 58px; }
+    .logo { font-size: 1.7rem; letter-spacing: 6px; }
+    #clock { display: block; }
+
+    .team-board { padding: 18px 28px; grid-template-columns: 1fr 100px 1fr; }
+    .team-name-input { max-width: 200px; font-size: 1.4rem; letter-spacing: 2px; }
+    .score-main { font-size: 2.6rem; }
+    .score-with-hcp { font-size: 0.9rem; }
+
+    .game-controls { flex-wrap: nowrap; padding: 10px 24px; }
+    .game-controls > div[style*="width:1px"] { display: block; }
+    .mode-toggle { order: 0; }
+    .save-season-btn { order: 0; }
+    .week-control { order: 0; }
+    .game-status { order: 0; margin-left: auto; }
+
+    .main-content { padding: 18px 20px; }
+    .bowlers-grid { grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); }
+    .season-section { padding: 18px 20px 28px; }
+  }
+
+  /* ── 1024px+ (desktop — original design) ── */
+  @media (min-width: 1024px) {
+    .league-badge { display: flex; }
+    .team-board { padding: 22px 36px; grid-template-columns: 1fr 120px 1fr; }
+    .team-name-input { max-width: 220px; font-size: 1.6rem; letter-spacing: 3px; }
+    .score-main { font-size: 3rem; }
+    .score-with-hcp { font-size: 1rem; }
+    .vs-text { font-size: 1.1rem; }
+    .frame-label { font-size: 0.52rem; letter-spacing: 3px; }
+    .hcp-diff-badge { font-size: 0.55rem; padding: 2px 8px; letter-spacing: 2px; }
+
+    .main-content { padding: 22px 24px; }
+    .bowlers-grid { grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); }
+    .season-section { padding: 22px 24px 32px; }
+
+    .throw-btn { min-height: 34px; padding: 5px 10px; font-size: 0.72rem; }
+    .clear-frame-btn { min-height: 34px; }
+    .frame-cell { width: 38px; height: 44px; }
+    .frame-cell.tenth-frame { width: 60px; }
+    .roll-badge { width: 16px; height: 16px; font-size: 0.6rem; }
+    .frame-score { font-size: 0.72rem; height: 22px; }
+    .score-table th { font-size: 0.55rem; padding: 4px 2px; }
+    .total-cell { font-size: 0.95rem; }
+    .hcp-total-cell { font-size: 0.7rem; }
   }
 
   /* completion status */
