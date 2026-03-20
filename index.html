@@ -8,6 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Strike Zone — Bowling League Tracker</title>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600;700&family=Lora:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script type="module" src="https://unpkg.com/@splinetool/viewer@1.9.48/build/spline-viewer.js"></script>
 <style>
   /* ─── DESIGN TOKENS ─── */
   :root {
@@ -1110,6 +1111,131 @@
   }
   .save-season-btn:hover { background: rgba(201,162,39,0.2); border-color: var(--gold); color: var(--gold-light); }
 
+  /* ─── ROSTER IMPORT ─── */
+  .import-roster-btn {
+    height: 32px;
+    padding: 0 14px;
+    background: rgba(46,95,160,0.12);
+    border: 1px solid var(--team-b-lt);
+    border-radius: 4px;
+    color: var(--team-b-lt);
+    font-family: 'Oswald', sans-serif;
+    font-size: 0.62rem;
+    font-weight: 500;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .import-roster-btn:hover { background: rgba(46,95,160,0.25); color: #5a9fe0; border-color: #5a9fe0; }
+
+  .roster-status {
+    font-family: 'Oswald', sans-serif;
+    font-size: 0.58rem;
+    letter-spacing: 1.5px;
+    color: var(--muted);
+    padding: 0 4px;
+  }
+  .roster-status.loaded { color: var(--gold); }
+
+  /* Roster picker dropdown on bowler cards */
+  .roster-picker {
+    background: var(--panel2);
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    color: var(--text);
+    font-family: 'Oswald', sans-serif;
+    font-size: 0.72rem;
+    letter-spacing: 1px;
+    padding: 4px 8px;
+    height: 30px;
+    max-width: 200px;
+    cursor: pointer;
+  }
+  .roster-picker:focus { outline: none; border-color: var(--gold-dim); }
+
+  /* ─── MATCHUP SETUP ─── */
+  .matchup-setup-section {
+    border-top: 1px solid var(--border2);
+    padding: 0 16px;
+    background: var(--bg);
+  }
+  .matchup-body { padding: 12px 0 16px; }
+  .matchup-sides {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 16px;
+    align-items: start;
+  }
+  .matchup-vs-col {
+    display: flex; flex-direction: column;
+    align-items: center; gap: 10px; padding-top: 28px;
+  }
+  .vs-badge {
+    background: var(--gold); color: var(--bg);
+    font-family: 'Oswald', sans-serif;
+    font-size: 0.85rem; font-weight: 700; letter-spacing: 2px;
+    border-radius: 50%; width: 36px; height: 36px;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .matchup-spread { text-align: center; }
+  .spread-bar { display: flex; align-items: center; gap: 6px; font-family: 'Oswald', sans-serif; font-size: 0.8rem; }
+  .spread-a, .spread-b { font-size: 1rem; font-weight: 700; color: var(--text); }
+  .favor-a .spread-a { color: var(--gold); }
+  .favor-b .spread-b { color: var(--gold); }
+  .spread-label { font-size: 0.55rem; color: var(--muted); letter-spacing: 1px; }
+  .spread-edge { font-size: 0.6rem; color: var(--gold-light); letter-spacing: 0.5px; margin-top: 4px; }
+  .matchup-side { display: flex; flex-direction: column; gap: 8px; }
+  .matchup-side-label { font-family: 'Oswald', sans-serif; font-size: 0.65rem; font-weight: 600; letter-spacing: 2px; color: var(--muted); }
+  .matchup-team-select, .matchup-player-select {
+    width: 100%; background: var(--card-bg); border: 1px solid var(--border2);
+    color: var(--text); font-family: 'Oswald', sans-serif;
+    font-size: 0.75rem; padding: 6px 8px; border-radius: 4px; cursor: pointer;
+  }
+  .matchup-team-select:focus, .matchup-player-select:focus { outline: none; border-color: var(--gold); }
+  .matchup-players { display: flex; flex-direction: column; gap: 5px; }
+  .matchup-player-slot { display: flex; align-items: center; gap: 5px; }
+  .slot-num { font-family: 'Oswald', sans-serif; font-size: 0.6rem; font-weight: 600; color: var(--muted); width: 12px; flex-shrink: 0; }
+  .matchup-player-select { flex: 1; font-size: 0.7rem; padding: 5px 7px; }
+  .matchup-player-select.optional { border-style: dashed; border-color: transparent; opacity: 0.8; }
+  .slot-clear { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 0.6rem; padding: 2px 4px; line-height: 1; }
+  .slot-clear:hover { color: #e55; }
+  .add-third-btn {
+    background: none; border: 1px dashed var(--border2); color: var(--muted);
+    font-family: 'Oswald', sans-serif; font-size: 0.65rem; letter-spacing: 1px;
+    padding: 4px 8px; border-radius: 4px; cursor: pointer; margin-left: 17px;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .add-third-btn:hover { border-color: var(--gold); color: var(--gold); }
+  .proj-panel { background: rgba(201,162,39,0.06); border: 1px solid rgba(201,162,39,0.2); border-radius: 4px; padding: 8px 10px; margin-top: 4px; }
+  .proj-header { font-family: 'Oswald', sans-serif; font-size: 0.6rem; font-weight: 600; letter-spacing: 1.5px; color: var(--muted); margin-bottom: 6px; }
+  .proj-breakdown { display: flex; flex-direction: column; gap: 3px; }
+  .proj-row { display: flex; align-items: center; gap: 6px; font-size: 0.65rem; }
+  .proj-name { font-family: 'Oswald', sans-serif; font-weight: 600; color: var(--text); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .proj-calc { color: var(--muted); font-size: 0.6rem; flex-shrink: 0; }
+  .proj-val { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: var(--gold-light); font-weight: 700; min-width: 28px; text-align: right; }
+  .proj-total-row {
+    display: flex; justify-content: space-between; align-items: center;
+    border-top: 1px solid rgba(201,162,39,0.2); padding-top: 5px; margin-top: 4px;
+    font-family: 'Oswald', sans-serif; font-size: 0.65rem; color: var(--muted); font-weight: 600; letter-spacing: 0.5px;
+  }
+  .proj-total { font-size: 1rem; font-weight: 700; color: var(--gold); font-family: 'JetBrains Mono', monospace; }
+  .matchup-footer { display: flex; align-items: center; gap: 12px; margin-top: 14px; flex-wrap: wrap; }
+  .matchup-hint { font-size: 0.65rem; color: var(--muted); font-family: 'Oswald', sans-serif; letter-spacing: 0.5px; }
+  .start-matchup-btn {
+    background: var(--gold); color: var(--bg); border: none;
+    font-family: 'Oswald', sans-serif; font-size: 0.75rem; font-weight: 600;
+    letter-spacing: 1.5px; padding: 8px 18px; border-radius: 4px; cursor: pointer;
+    margin-left: auto; transition: background 0.15s, opacity 0.15s;
+  }
+  .start-matchup-btn:hover:not(:disabled) { background: var(--gold-light); }
+  .start-matchup-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+  @media (max-width: 700px) {
+    .matchup-sides { grid-template-columns: 1fr; }
+    .matchup-vs-col { flex-direction: row; padding-top: 0; justify-content: center; }
+    .matchup-spread { display: none; }
+  }
+
   /* ─── SEASON TRACKER ─── */
   .season-section {
     padding: 22px 24px 32px;
@@ -1539,9 +1665,196 @@
     color: var(--gold);
     text-transform: uppercase;
   }
+
+  /* ─── HERO SECTION ─── */
+  .hero-section {
+    position: relative;
+    width: 100%;
+    min-height: 420px;
+    background: #0e0b07;
+    border-bottom: 1px solid var(--border2);
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 24px;
+  }
+
+  /* spotlight radial glow */
+  .hero-spotlight {
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background: radial-gradient(ellipse 70% 60% at 20% 50%,
+      rgba(201,162,39,0.18) 0%,
+      rgba(201,162,39,0.06) 40%,
+      transparent 70%
+    );
+  }
+
+  .hero-card {
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    max-width: 900px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    background: rgba(30,25,18,0.85);
+    border: 1px solid rgba(201,162,39,0.22);
+    border-radius: 16px;
+    overflow: hidden;
+    backdrop-filter: blur(6px);
+    box-shadow: 0 0 60px rgba(0,0,0,0.6), inset 0 1px 0 rgba(201,162,39,0.12);
+  }
+
+  .hero-left {
+    flex: 1 1 50%;
+    padding: 40px 36px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .hero-eyebrow {
+    font-family: 'Oswald', sans-serif;
+    font-size: 0.6rem;
+    font-weight: 500;
+    letter-spacing: 4px;
+    color: var(--gold);
+    text-transform: uppercase;
+  }
+
+  .hero-headline {
+    font-family: 'Oswald', sans-serif;
+    font-size: clamp(2rem, 4vw, 3rem);
+    font-weight: 700;
+    line-height: 1.05;
+    color: var(--cream);
+    letter-spacing: 2px;
+  }
+
+  .hero-headline em {
+    font-style: italic;
+    color: var(--gold-light);
+  }
+
+  .hero-sub {
+    font-family: 'Lora', serif;
+    font-size: 0.82rem;
+    color: var(--text2);
+    line-height: 1.6;
+    max-width: 300px;
+  }
+
+  .hero-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+  }
+
+  .hero-stat-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(201,162,39,0.08);
+    border: 1px solid rgba(201,162,39,0.20);
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-family: 'Oswald', sans-serif;
+    font-size: 0.7rem;
+    letter-spacing: 1.5px;
+    color: var(--text2);
+  }
+
+  .hero-stat-badge .badge-icon {
+    font-size: 0.9rem;
+  }
+
+  .hero-stat-badge strong {
+    color: var(--gold-light);
+  }
+
+  .hero-right {
+    flex: 0 0 48%;
+    position: relative;
+    height: 320px;
+    overflow: hidden;
+  }
+
+  .hero-right spline-viewer {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  /* vignette on the right side of spline */
+  .hero-right::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      90deg,
+      rgba(30,25,18,0.85) 0%,
+      transparent 30%,
+      transparent 70%,
+      rgba(14,11,7,0.6) 100%
+    );
+    pointer-events: none;
+  }
+
+  /* pin dots background pattern */
+  .hero-section::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(circle, rgba(201,162,39,0.07) 1px, transparent 1px);
+    background-size: 32px 32px;
+    z-index: 0;
+  }
+
+  /* responsive: stack on mobile */
+  @media (max-width: 640px) {
+    .hero-section { min-height: 560px; padding: 24px 12px; }
+    .hero-card { flex-direction: column; }
+    .hero-right { flex: 0 0 220px; width: 100%; }
+    .hero-left { padding: 24px 20px; }
+  }
 </style>
 </head>
 <body>
+
+<!-- ══ HERO SECTION ══ -->
+<section class="hero-section">
+  <div class="hero-spotlight"></div>
+  <div class="hero-card">
+    <div class="hero-left">
+      <span class="hero-eyebrow">Strike Zone · Bowling League</span>
+      <h1 class="hero-headline">Bowl<br><em>Perfect.</em></h1>
+      <p class="hero-sub">Track every frame, every strike, every split. Real-time league scoring built for serious bowlers.</p>
+      <div class="hero-stats">
+        <div class="hero-stat-badge">
+          <span class="badge-icon">🏆</span>
+          <span>Perfect Games <strong id="hero-stat-perfect">—</strong></span>
+        </div>
+        <div class="hero-stat-badge">
+          <span class="badge-icon">⚡</span>
+          <span>Season High <strong id="hero-stat-high">—</strong></span>
+        </div>
+        <div class="hero-stat-badge">
+          <span class="badge-icon">🎯</span>
+          <span>Strike Rate <strong id="hero-stat-strikes">—</strong></span>
+        </div>
+      </div>
+    </div>
+    <div class="hero-right">
+      <spline-viewer url="https://prod.spline.design/kZDDjO5HlFTv7Jng/scene.splinecode"
+        loading="lazy"></spline-viewer>
+    </div>
+  </div>
+</section>
 
 <!-- ══ STICKY TOP WRAPPER ══ -->
 <div id="sticky-top">
@@ -1654,6 +1967,66 @@
         <button class="week-btn" onclick="changeWeek(1)">▶</button>
       </div>
       <button class="save-season-btn" onclick="saveGameToSeason()">✓ Save to Season</button>
+      <div style="width:1px;height:22px;background:var(--border2);margin:0 4px;"></div>
+      <button class="import-roster-btn" onclick="document.getElementById('roster-file-input').click()">⬆ Import Roster</button>
+      <input type="file" id="roster-file-input" accept=".csv" style="display:none" onchange="handleRosterFile(this)" />
+      <span class="roster-status" id="roster-status">No roster loaded</span>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MATCHUP SETUP ══ -->
+<div class="matchup-setup-section" id="matchup-setup-section" style="display:none">
+  <div class="controls-header-row">
+    <span class="controls-header-label">⚔ Matchup Setup</span>
+    <button class="section-toggle-btn" id="matchup-toggle-btn" onclick="toggleMatchupSection()">▼ Show</button>
+  </div>
+  <div id="matchup-body" style="display:none">
+    <div class="matchup-sides" id="matchup-sides">
+      <!-- Team A side -->
+      <div class="matchup-side" id="matchup-side-a">
+        <div class="matchup-side-label">TEAM A</div>
+        <select class="matchup-team-select" id="matchup-team-select-a" onchange="onMatchupTeamChange('a')">
+          <option value="">— Select Team —</option>
+        </select>
+        <div class="matchup-players" id="matchup-players-a" style="display:none"></div>
+        <div class="proj-panel" id="proj-panel-a" style="display:none">
+          <div class="proj-header">Projected Score</div>
+          <div id="proj-breakdown-a"></div>
+        </div>
+      </div>
+
+      <!-- VS divider -->
+      <div class="matchup-vs-col">
+        <div class="vs-badge">VS</div>
+        <div class="matchup-spread" id="matchup-spread" style="display:none">
+          <div class="spread-bar" id="spread-bar">
+            <span class="spread-a" id="spread-val-a">—</span>
+            <span class="spread-label">proj.</span>
+            <span class="spread-b" id="spread-val-b">—</span>
+          </div>
+          <div class="spread-edge" id="spread-edge"></div>
+        </div>
+      </div>
+
+      <!-- Team B side -->
+      <div class="matchup-side" id="matchup-side-b">
+        <div class="matchup-side-label">TEAM B</div>
+        <select class="matchup-team-select" id="matchup-team-select-b" onchange="onMatchupTeamChange('b')">
+          <option value="">— Select Team —</option>
+        </select>
+        <div class="matchup-players" id="matchup-players-b" style="display:none"></div>
+        <div class="proj-panel" id="proj-panel-b" style="display:none">
+          <div class="proj-header">Projected Score</div>
+          <div id="proj-breakdown-b"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="matchup-footer">
+      <span class="matchup-hint" id="matchup-hint-a"></span>
+      <span class="matchup-hint" id="matchup-hint-b"></span>
+      <button class="start-matchup-btn" id="start-matchup-btn" onclick="loadMatchupLineup()" disabled>🎳 Load Lineup</button>
     </div>
   </div>
 </div>
@@ -1910,6 +2283,7 @@ function recordRoll(bowlerId, pins) {
   renderBowler(b);
   updateTeamScores();
   updateGlobalFrame();
+  updateHeroStats();
 
   // Auto-advance to next bowler when game is locked in and a frame completes
   if (gameStarted && scoringMode === 'frame' && frameJustCompleted) {
@@ -2181,13 +2555,25 @@ function buildBowlerCard(b) {
     `<option value="${t}" ${b.team === t ? 'selected' : ''}>${t === 'none' ? 'No Team' : t === 'a' ? 'Team A' : 'Team B'}</option>`
   ).join('');
 
-  const nameField = b.team === 'a'
-    ? `<select class="roster-select" onchange="setRosterPlayer(${b.id},this.value)">
-        <option value="">— Select Player —</option>
-        ${TEAM_A_ROSTER.map(n => `<option value="${n}" ${b.name === n ? 'selected' : ''}>${n}</option>`).join('')}
-       </select>`
-    : `<input class="bowler-name-input" value="${b.name}" maxlength="16"
-         onchange="renameBowler(${b.id},this.value)" />`;
+  // If a league roster is loaded, always show a picker regardless of team
+  const nameField = leagueRoster.length > 0
+    ? (() => {
+        const teamPlayers = b.team !== 'none'
+          ? leagueRoster.filter(p => p.team.toLowerCase() === (b.team === 'a' ? document.getElementById('team-a-name')?.value?.toLowerCase() : document.getElementById('team-b-name')?.value?.toLowerCase()))
+          : leagueRoster;
+        const players = teamPlayers.length > 0 ? teamPlayers : leagueRoster;
+        return `<select class="roster-picker" onchange="applyRosterPlayer(${b.id},this.value)">
+          <option value="">— Select Player —</option>
+          ${players.map(p => `<option value="${p.name}" ${b.name === p.name ? 'selected' : ''}>${p.name} (${p.avg} avg, +${p.handicap} hcp)</option>`).join('')}
+        </select>`;
+      })()
+    : b.team === 'a'
+      ? `<select class="roster-select" onchange="setRosterPlayer(${b.id},this.value)">
+          <option value="">— Select Player —</option>
+          ${TEAM_A_ROSTER.map(n => `<option value="${n}" ${b.name === n ? 'selected' : ''}>${n}</option>`).join('')}
+         </select>`
+      : `<input class="bowler-name-input" value="${b.name}" maxlength="16"
+           onchange="renameBowler(${b.id},this.value)" />`;
 
   return `<div class="bowler-card ${teamClass} ${activeClass}" id="bowler-${b.id}">
     <div class="card-header">
@@ -2388,6 +2774,7 @@ function saveGameToSeason() {
   });
 
   renderSeasonTracker();
+  updateHeroStats();
   saveToStorage();
 
   const msg = `Week ${currentWeek} saved:\n${saved.join('\n')}` +
@@ -2680,13 +3067,337 @@ setInterval(updateClock, 1000);
 updateClock();
 
 // ─────────────────────────────────────────────
+//  ROSTER IMPORT (from CSV)
+// ─────────────────────────────────────────────
+let leagueRoster = []; // [{name, team, avg, high, played, handicap}]
+
+function loadRosterFromStorage() {
+  try {
+    const raw = localStorage.getItem('strikeZone_roster');
+    if (raw) { leagueRoster = JSON.parse(raw); updateRosterStatus(); }
+  } catch(e) {}
+}
+
+function saveRosterToStorage() {
+  try { localStorage.setItem('strikeZone_roster', JSON.stringify(leagueRoster)); } catch(e) {}
+}
+
+function updateRosterStatus() {
+  const el = document.getElementById('roster-status');
+  if (!el) return;
+  if (leagueRoster.length === 0) {
+    el.textContent = 'No roster loaded';
+    el.className = 'roster-status';
+  } else {
+    el.textContent = `✓ ${leagueRoster.length} players loaded`;
+    el.className = 'roster-status loaded';
+  }
+  initMatchupSection();
+}
+
+function handleRosterFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    parseRosterCSV(e.target.result);
+    input.value = ''; // reset so same file can be re-imported
+  };
+  reader.readAsText(file);
+}
+
+function parseRosterCSV(text) {
+  const lines = text.split('\n').map(l => l.split(',').map(c => c.trim().replace(/^"|"$/g, '')));
+
+  // Find the header row (contains "Player" and "Team")
+  let headerIdx = -1;
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].includes('Player') && lines[i].includes('Team')) { headerIdx = i; break; }
+  }
+  if (headerIdx === -1) { alert('Could not find header row. Make sure the CSV has Player and Team columns.'); return; }
+
+  const headers = lines[headerIdx].map(h => h.toLowerCase());
+  const col = name => headers.findIndex(h => h.includes(name));
+  const iPlayer = col('player'), iTeam = col('team'), iAvg = col('avg'), iHigh = col('high'), iPlayed = col('played');
+
+  const players = [];
+  for (let i = headerIdx + 1; i < lines.length; i++) {
+    const row = lines[i];
+    if (row.length < 3) continue;
+    const name = row[iPlayer]?.trim();
+    const team = row[iTeam]?.trim();
+    const avg  = parseFloat(row[iAvg]);
+    const high = parseInt(row[iHigh]) || 0;
+    const played = parseInt(row[iPlayed]) || 0;
+
+    // Skip blanks, placeholders, ghost teams, and 0-avg entries
+    if (!name || !team) continue;
+    if (avg === 0 || isNaN(avg)) continue;
+    if (/- A[12]$|- P[1-6]$|Ghost Team/i.test(name)) continue;
+
+    const handicap = Math.max(0, Math.round((200 - avg) * 0.70));
+    players.push({ name, team, avg, high, played, handicap });
+  }
+
+  if (players.length === 0) { alert('No valid players found in CSV.'); return; }
+
+  leagueRoster = players.sort((a, b) => a.name.localeCompare(b.name));
+  saveRosterToStorage();
+  updateRosterStatus();
+  renderAll(); // refresh bowler cards to show updated roster picker
+  showToast(`Roster loaded: ${leagueRoster.length} players`);
+}
+
+function applyRosterPlayer(bowlerId, name) {
+  const b = bowlers.find(x => x.id === bowlerId);
+  const player = leagueRoster.find(p => p.name === name);
+  if (!b || !player) return;
+  b.name = player.name;
+  b.handicap = player.handicap;
+  renderBowler(b);
+  updateTeamScores();
+}
+
+// ─────────────────────────────────────────────
+//  MATCHUP SETUP
+// ─────────────────────────────────────────────
+
+// matchupState: selections for each side
+const matchupState = {
+  a: { teamName: '', players: ['', '', ''] },
+  b: { teamName: '', players: ['', '', ''] },
+};
+
+function initMatchupSection() {
+  const section = document.getElementById('matchup-setup-section');
+  if (!section) return;
+  if (leagueRoster.length === 0) { section.style.display = 'none'; return; }
+  section.style.display = '';
+  // Populate team dropdowns
+  const teams = [...new Set(leagueRoster.map(p => p.team))].sort();
+  ['a', 'b'].forEach(side => {
+    const sel = document.getElementById(`matchup-team-select-${side}`);
+    if (!sel) return;
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">— Select Team —</option>' +
+      teams.map(t => `<option value="${t}"${t === cur ? ' selected' : ''}>${t}</option>`).join('');
+  });
+}
+
+function toggleMatchupSection() {
+  const body = document.getElementById('matchup-body');
+  const btn  = document.getElementById('matchup-toggle-btn');
+  if (!body || !btn) return;
+  const open = body.style.display !== 'none';
+  body.style.display = open ? 'none' : '';
+  btn.textContent = open ? '▼ Show' : '▲ Hide';
+}
+
+function onMatchupTeamChange(side) {
+  const teamName = document.getElementById(`matchup-team-select-${side}`)?.value || '';
+  matchupState[side].teamName = teamName;
+  matchupState[side].players = ['', '', ''];
+  renderMatchupPlayers(side);
+  renderMatchupProjection(side);
+  updateMatchupSpread();
+  updateMatchupStartBtn();
+}
+
+function renderMatchupPlayers(side) {
+  const container = document.getElementById(`matchup-players-${side}`);
+  if (!container) return;
+  const st = matchupState[side];
+  if (!st.teamName) { container.style.display = 'none'; return; }
+  container.style.display = '';
+
+  const teamPlayers = leagueRoster.filter(p => p.team === st.teamName);
+  let html = '';
+  for (let i = 0; i < 3; i++) {
+    // Only show slot 3 if slot 2 is filled (and slot 1)
+    if (i >= 2 && !st.players[1]) continue;
+    const label = i < 2 ? `Player ${i + 1} (required)` : 'Player 3 (optional)';
+    const cls = i < 2 ? 'matchup-player-select required' : 'matchup-player-select optional';
+    const available = teamPlayers.filter(tp => !st.players.some((sp, si) => si !== i && sp === tp.name));
+    const opts = available.map(tp =>
+      `<option value="${tp.name}"${st.players[i] === tp.name ? ' selected' : ''}>${tp.name} (${tp.avg} avg, +${tp.handicap} hcp)</option>`
+    ).join('');
+    const clearBtn = st.players[i]
+      ? `<button class="slot-clear" onclick="clearMatchupSlot('${side}',${i})" title="Remove">✕</button>`
+      : '';
+    html += `<div class="matchup-player-slot">
+      <span class="slot-num">${i + 1}</span>
+      <select class="${cls}" onchange="onMatchupPlayerChange('${side}',${i},this.value)">
+        <option value="">${label}</option>${opts}
+      </select>${clearBtn}
+    </div>`;
+  }
+  // Add 3rd player button if 2 filled and 3rd not shown
+  const active = st.players.filter(Boolean).length;
+  if (active >= 2 && !st.players[2]) {
+    html += `<button class="add-third-btn" onclick="showThirdSlot('${side}')">+ Add 3rd Player</button>`;
+  }
+  container.innerHTML = html;
+}
+
+function onMatchupPlayerChange(side, idx, name) {
+  matchupState[side].players[idx] = name;
+  renderMatchupPlayers(side); // re-render to update available options / show 3rd slot
+  renderMatchupProjection(side);
+  updateMatchupSpread();
+  updateMatchupStartBtn();
+}
+
+function clearMatchupSlot(side, idx) {
+  matchupState[side].players[idx] = '';
+  renderMatchupPlayers(side);
+  renderMatchupProjection(side);
+  updateMatchupSpread();
+  updateMatchupStartBtn();
+}
+
+function showThirdSlot(side) {
+  // The slot will appear naturally when renderMatchupPlayers checks st.players[1]
+  renderMatchupPlayers(side);
+}
+
+function renderMatchupProjection(side) {
+  const panel = document.getElementById(`proj-panel-${side}`);
+  const breakdown = document.getElementById(`proj-breakdown-${side}`);
+  if (!panel || !breakdown) return;
+  const players = matchupState[side].players
+    .filter(Boolean)
+    .map(n => leagueRoster.find(p => p.name === n))
+    .filter(Boolean);
+  if (players.length === 0) { panel.style.display = 'none'; return; }
+  panel.style.display = '';
+  const total = players.reduce((s, p) => s + p.avg + p.handicap, 0);
+  breakdown.innerHTML =
+    players.map(p =>
+      `<div class="proj-row">
+        <span class="proj-name">${p.name}</span>
+        <span class="proj-calc">${p.avg} avg + ${p.handicap} hcp</span>
+        <span class="proj-val">${p.avg + p.handicap}</span>
+      </div>`
+    ).join('') +
+    `<div class="proj-total-row"><span>Projected Total</span><span class="proj-total">${total}</span></div>`;
+}
+
+function getMatchupProjectedTotal(side) {
+  return matchupState[side].players
+    .filter(Boolean)
+    .map(n => leagueRoster.find(p => p.name === n))
+    .filter(Boolean)
+    .reduce((s, p) => s + p.avg + p.handicap, 0);
+}
+
+function updateMatchupSpread() {
+  const spread = document.getElementById('matchup-spread');
+  const bar    = document.getElementById('spread-bar');
+  const edgeEl = document.getElementById('spread-edge');
+  const valA   = document.getElementById('spread-val-a');
+  const valB   = document.getElementById('spread-val-b');
+  if (!spread) return;
+  const projA = getMatchupProjectedTotal('a');
+  const projB = getMatchupProjectedTotal('b');
+  if (projA === 0 && projB === 0) { spread.style.display = 'none'; return; }
+  spread.style.display = '';
+  valA.textContent = projA || '—';
+  valB.textContent = projB || '—';
+  bar.className = 'spread-bar' + (projA > projB ? ' favor-a' : projB > projA ? ' favor-b' : '');
+  if (projA !== projB) {
+    edgeEl.textContent = `${projA > projB ? 'Team A' : 'Team B'} +${Math.abs(projA - projB)} edge`;
+  } else {
+    edgeEl.textContent = '';
+  }
+}
+
+function updateMatchupStartBtn() {
+  const btn = document.getElementById('start-matchup-btn');
+  const hintA = document.getElementById('matchup-hint-a');
+  const hintB = document.getElementById('matchup-hint-b');
+  if (!btn) return;
+  const readyA = matchupState.a.players.filter(Boolean).length >= 2;
+  const readyB = matchupState.b.players.filter(Boolean).length >= 2;
+  hintA.textContent = (!readyA && matchupState.a.teamName) ? 'Team A needs at least 2 players' : '';
+  hintB.textContent = (!readyB && matchupState.b.teamName) ? 'Team B needs at least 2 players' : '';
+  btn.disabled = !(readyA && readyB);
+}
+
+function loadMatchupLineup() {
+  const lineupA = matchupState.a.players.filter(Boolean).map(n => leagueRoster.find(p => p.name === n)).filter(Boolean);
+  const lineupB = matchupState.b.players.filter(Boolean).map(n => leagueRoster.find(p => p.name === n)).filter(Boolean);
+  if (lineupA.length < 2 || lineupB.length < 2) { alert('Each team needs at least 2 players.'); return; }
+
+  // Reset game state without confirm dialog
+  gameStarted = false;
+  lockedOrder = [];
+  activeBowlerIdx = 0;
+  bowlers = [];
+  nextId = 1;
+
+  const all = [
+    ...lineupA.map(p => ({ ...p, team: 'a' })),
+    ...lineupB.map(p => ({ ...p, team: 'b' })),
+  ];
+  all.forEach(p => {
+    const b = createBowler(p.name, p.team); // createBowler uses nextId++ internally
+    b.handicap = p.handicap;
+    bowlers.push(b);
+  });
+
+  renderAll();
+  updateTeamScores();
+
+  // Collapse matchup panel
+  const body = document.getElementById('matchup-body');
+  const btn  = document.getElementById('matchup-toggle-btn');
+  if (body) body.style.display = 'none';
+  if (btn) btn.textContent = '▼ Show';
+
+  showToast(`Lineup loaded: ${all.map(p => p.name).join(', ')}`);
+}
+
+// ─────────────────────────────────────────────
+//  HERO STATS
+// ─────────────────────────────────────────────
+function updateHeroStats() {
+  const allScores = Object.values(seasonData).flatMap(games => games.map(g => g.score));
+  const perfectEl  = document.getElementById('hero-stat-perfect');
+  const highEl     = document.getElementById('hero-stat-high');
+  const strikeEl   = document.getElementById('hero-stat-strikes');
+
+  if (perfectEl) {
+    const perfects = allScores.filter(s => s === 300).length;
+    perfectEl.textContent = perfects > 0 ? perfects : '—';
+  }
+  if (highEl) {
+    const high = allScores.length ? Math.max(...allScores) : null;
+    highEl.textContent = high !== null ? high : '—';
+  }
+  if (strikeEl) {
+    // Count strikes across all active bowlers' current frames
+    let totalRolls = 0, strikeCount = 0;
+    bowlers.forEach(b => {
+      b.frames.forEach(f => {
+        f.rolls.forEach(r => { totalRolls++; if (r === 10) strikeCount++; });
+      });
+    });
+    strikeEl.textContent = totalRolls > 0
+      ? Math.round((strikeCount / totalRolls) * 100) + '%'
+      : '—';
+  }
+}
+
+// ─────────────────────────────────────────────
 //  INIT
 // ─────────────────────────────────────────────
 buildPins([0,1,2,3,4,5,6,7,8,9]);
 loadFromStorage();
+loadRosterFromStorage();
 renderAll();
 updateTeamScores();
 renderSeasonTracker();
+updateHeroStats();
 // Show Lock In button on initial load (frame mode is default)
 document.getElementById('lock-in-wrap').classList.add('visible');
 </script>
