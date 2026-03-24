@@ -1,0 +1,3081 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gameboy Bowling League Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;700;900&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* ─── CSS VARIABLES ─────────────────────────────────── */
+:root {
+  --dark-black:   #1c1c25;
+  --black:        #101016;
+  --medium-black: #25252f;
+  --soft-black:   #3b3b44;
+  --smoke:        #c4c4c4;
+  --white-smoke:  #f7efdd;
+  --blue:         #2a4bb3;
+  --dark-blue:    #213e9a;
+  --black-blue:   #1f367e;
+  --light-blue:   #536cbb;
+  --dark-purple:  #4548a9;
+  --purple:       #7174db;
+  --yellow:       #ecb236;
+  --dark-yellow:  #b58622;
+  --green:        #44ac9e;
+  --dark-green:   #267267;
+  --red:          #e72a6e;
+  --dark-red:     #95234c;
+  --font-main: 'Barlow Condensed', sans-serif;
+  --font-body: 'DM Sans', sans-serif;
+}
+
+/* ─── RESET & BASE ──────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--dark-black);
+  font-family: var(--font-main);
+  font-weight: 700;
+  color: var(--smoke);
+  font-size: 13px;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ─── INTRO SCREEN ──────────────────────────────────── */
+#intro {
+  position: fixed; inset: 0; z-index: 9999;
+  background: var(--dark-black);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  transition: opacity 0.6s;
+  background-image:
+    radial-gradient(circle, rgba(229,229,229,0.04) 20%, transparent 10%),
+    radial-gradient(circle, rgba(229,229,229,0.04) 20%, transparent 10%);
+  background-size: 13px 13px;
+}
+
+.intro-chain {
+  width: 5px; height: 60px;
+  background: repeating-linear-gradient(to bottom,
+    var(--yellow) 0px, var(--yellow) 5px,
+    var(--dark-black) 5px, var(--dark-black) 9px);
+  border-radius: 2px;
+  margin-bottom: -2px;
+  animation: sway 2.5s ease-in-out infinite;
+  transform-origin: top center;
+}
+
+@keyframes sway {
+  0%,100% { transform: rotate(-2deg); }
+  50%      { transform: rotate(2deg); }
+}
+
+.intro-badge {
+  background: var(--blue);
+  border-radius: 1.3em;
+  padding: 1.2em;
+  width: 260px;
+  box-shadow: 0 0 2.5em rgba(0,0,0,0.8);
+  animation: float 2.5s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%,100% { transform: translateY(0px) rotate(-1deg); }
+  50%      { transform: translateY(-10px) rotate(1deg); }
+}
+
+.intro-screws {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 0.7em; color: var(--dark-blue);
+}
+
+.intro-screen-box {
+  background: var(--black);
+  border-radius: 0.7em; padding: 1.4em 1.2em;
+  margin-bottom: 1.1em;
+}
+
+.intro-screen-box h2 {
+  font-size: 1.7em; color: white; margin-bottom: 0.3em; line-height: 1.1;
+}
+
+.intro-screen-box p {
+  font-size: 0.95em; font-weight: 400; font-family: var(--font-body);
+  color: var(--smoke); line-height: 1.5;
+}
+
+.power-btn {
+  background: var(--yellow); border: none; border-radius: 50%;
+  width: 3.6em; height: 3.6em;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; margin: 0 auto;
+  box-shadow: 0 5px 0 var(--dark-yellow), 0 0 20px rgba(236,178,54,0.3);
+  transition: transform 0.1s, box-shadow 0.1s;
+  color: var(--dark-yellow);
+  position: relative;
+}
+.power-btn:hover  { transform: translateY(-2px); }
+.power-btn:active { transform: translateY(5px); box-shadow: none; }
+
+.click-bubble {
+  background: white; color: var(--black);
+  font-size: 0.85em; font-weight: 900; letter-spacing: 0.05em;
+  padding: 0.4em 0.7em; border-radius: 100em;
+  position: absolute; left: calc(100% + 0.5em); top: 50%;
+  transform: translateY(-50%); white-space: nowrap;
+  animation: bubble-pulse 1.2s ease-in-out infinite;
+}
+.click-bubble::before {
+  content: '';
+  position: absolute; right: 100%; top: 50%; transform: translateY(-50%);
+  border: 5px solid transparent; border-right-color: white;
+}
+
+@keyframes bubble-pulse {
+  0%,100% { transform: translateY(-50%) scale(1); }
+  50%      { transform: translateY(-50%) scale(1.05); }
+}
+
+.intro-hint {
+  margin-top: 1.8em; color: var(--soft-black);
+  font-size: 0.75em; letter-spacing: 0.12em; text-transform: uppercase;
+  display: flex; align-items: center; gap: 0.5em;
+}
+
+/* ─── UPLOAD SCREEN ─────────────────────────────────── */
+#upload-screen {
+  position: fixed; inset: 0; z-index: 9998;
+  background: var(--dark-black);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.6s;
+  opacity: 0;
+  background-image:
+    radial-gradient(circle, rgba(229,229,229,0.04) 20%, transparent 10%),
+    radial-gradient(circle, rgba(229,229,229,0.04) 20%, transparent 10%);
+  background-size: 13px 13px;
+  flex-direction: column;
+}
+
+.upload-chain {
+  width: 5px; height: 50px;
+  background: repeating-linear-gradient(to bottom,
+    var(--yellow) 0px, var(--yellow) 5px,
+    var(--dark-black) 5px, var(--dark-black) 9px);
+  border-radius: 2px;
+  margin-bottom: -2px;
+}
+
+.upload-card {
+  background: var(--blue);
+  border-radius: 1.3em;
+  padding: 1.5em;
+  width: min(420px, 90vw);
+  box-shadow: 0 0 2.5em rgba(0,0,0,0.8);
+}
+
+.upload-screws {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 1em; color: var(--dark-blue);
+}
+
+.upload-content {
+  background: var(--black);
+  border-radius: 0.7em; padding: 1.2em;
+  margin-bottom: 1em;
+}
+
+.upload-content h2 {
+  font-size: 1.4em; color: white; margin-bottom: 0.4em; line-height: 1.1;
+}
+
+.upload-content p {
+  font-size: 0.9em; font-weight: 400; font-family: var(--font-body);
+  color: var(--smoke); margin-bottom: 0.6em; line-height: 1.4;
+}
+
+.upload-file-btn {
+  background: var(--green); color: var(--dark-green);
+  border: none; border-radius: 0.35em;
+  width: 100%; padding: 0.85em;
+  font-family: var(--font-main); font-size: 1em; font-weight: 900;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 0 4px 0 var(--dark-green);
+  transition: transform 0.1s, box-shadow 0.1s;
+  margin-bottom: 0.7em;
+}
+.upload-file-btn:hover  { transform: translateY(-1px); box-shadow: 0 5px 0 var(--dark-green); }
+.upload-file-btn:active { transform: translateY(4px); box-shadow: none; }
+
+#upload-filename {
+  font-size: 0.8em;
+  color: var(--yellow);
+  text-align: center;
+  font-family: 'JetBrains Mono', monospace;
+  margin-bottom: 0.5em;
+  min-height: 1.2em;
+}
+
+.upload-hint {
+  font-size: 0.75em;
+  color: var(--light-blue);
+  text-align: center;
+  margin-top: 0.5em;
+  font-weight: 400;
+  font-family: var(--font-body);
+}
+
+/* ─── MAIN DASHBOARD ────────────────────────────────── */
+#dashboard {
+  display: none; opacity: 0;
+  padding: 1.11em 1.11em 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-image:
+    radial-gradient(circle, rgba(229,229,229,0.035) 20%, transparent 10%),
+    radial-gradient(circle, rgba(229,229,229,0.035) 20%, transparent 10%);
+  background-size: 13px 13px;
+}
+
+.main-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr 1fr;
+  gap: 1.11em;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* ─── CARDS ─────────────────────────────────────────── */
+.card {
+  background: var(--medium-black);
+  border-radius: 0.83em;
+  border: 1px solid rgba(255,255,255,0.04);
+  box-shadow: 0 0 1em var(--black);
+  overflow: hidden;
+}
+
+.card__container {
+  display: flex; flex-direction: column;
+  width: 100%; height: 100%; padding: 1.11em;
+}
+
+.card-titlebar {
+  background: var(--dark-black);
+  border-radius: 0.56em;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0.8em 1em; margin-bottom: 0.9em;
+}
+
+.card-titlebar__text {
+  font-size: 1.1em; letter-spacing: 0.07em; text-transform: uppercase;
+  color: var(--smoke); flex: 1;
+}
+
+.card-titlebar__link {
+  color: var(--soft-black); font-size: 0.9em;
+  cursor: pointer; transition: color 0.1s;
+}
+.card-titlebar__link:hover { color: var(--smoke); }
+
+.screws-row {
+  display: flex; justify-content: space-between; align-items: center;
+  color: var(--soft-black);
+}
+
+.screw { width: 1.6em; height: 1.6em; opacity: 0.5; }
+
+.dot-grid {
+  background-image: radial-gradient(circle, var(--soft-black) 1px, transparent 1px);
+  background-size: 5px 5px; width: 36px; height: 24px; opacity: 0.6;
+}
+
+/* ─── PROFILE CARD (LEFT COL) ───────────────────────── */
+.profile-card {
+  background: var(--blue);
+  border-radius: 1.1em;
+  padding: 0.9em;
+  box-shadow: 0 0 1.5em var(--black);
+  display: flex;
+  flex-direction: column;
+}
+
+/* ─── TEAM ROSTER CARDS ─────────────────────────────── */
+.team-roster-card {
+  border-radius: 0.83em;
+  border: 1px solid rgba(255,255,255,0.05);
+  box-shadow: 0 0 1em var(--black);
+  overflow: hidden;
+}
+.team-roster-card.side-a { background: var(--medium-black); border-color: rgba(231,42,110,0.25); }
+.team-roster-card.side-b { background: var(--medium-black); border-color: rgba(83,108,187,0.25); }
+
+.team-roster-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0.7em 0.9em;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.team-roster-header .team-name { font-size: 1em; letter-spacing: 0.08em; font-weight: 900; }
+.side-a .team-roster-header .team-name { color: var(--red); }
+.side-b .team-roster-header .team-name { color: var(--light-blue); }
+
+.team-roster-header select {
+  background: var(--dark-black); color: var(--smoke);
+  border: 1px solid var(--soft-black); border-radius: 0.3em;
+  padding: 0.3em 0.5em; font-family: var(--font-main);
+  font-size: 0.8em; font-weight: 700; cursor: pointer;
+  max-width: 140px;
+}
+
+.roster-list {
+  padding: 0.5em;
+  display: flex; flex-direction: column; gap: 0.3em;
+  max-height: 200px; overflow-y: auto;
+}
+.roster-list::-webkit-scrollbar { width: 4px; }
+.roster-list::-webkit-scrollbar-track { background: transparent; }
+.roster-list::-webkit-scrollbar-thumb { background: var(--soft-black); border-radius: 2px; }
+
+.roster-empty {
+  text-align: center; padding: 1.2em 0;
+  font-size: 0.8em; color: var(--soft-black);
+  font-family: var(--font-body); font-weight: 400;
+  letter-spacing: 0.05em;
+}
+
+.roster-player {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0.45em 0.6em; border-radius: 0.35em;
+  background: var(--dark-black); cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.12s;
+}
+.roster-player:hover { background: var(--soft-black); }
+.roster-player.selected-a {
+  background: rgba(231,42,110,0.15);
+  border-color: var(--red);
+}
+.roster-player.selected-b {
+  background: rgba(83,108,187,0.18);
+  border-color: var(--light-blue);
+}
+.roster-player .rp-name {
+  font-size: 0.85em; font-weight: 700;
+  color: var(--white-smoke); letter-spacing: 0.03em;
+}
+.roster-player .rp-stats {
+  display: flex; gap: 0.6em; align-items: center;
+}
+.rp-avg { font-size: 0.75em; color: var(--smoke); }
+.rp-hcp { font-size: 0.75em; color: var(--yellow); font-weight: 900; }
+
+.roster-footer {
+  padding: 0.4em 0.9em 0.6em;
+  font-size: 0.72em; letter-spacing: 0.08em;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.side-a .roster-footer { color: var(--red); }
+.side-b .roster-footer { color: var(--light-blue); }
+.roster-footer .selection-dots {
+  display: flex; gap: 0.3em;
+}
+.selection-dot {
+  width: 0.55em; height: 0.55em; border-radius: 50%;
+  background: var(--soft-black);
+  transition: background 0.15s;
+}
+.side-a .selection-dot.filled { background: var(--red); }
+.side-b .selection-dot.filled { background: var(--light-blue); }
+
+/* ─── GAME CONTROLS CARD ─────────────────────────────── */
+.controls-card {
+  background: var(--medium-black);
+  border-radius: 0.83em;
+  border: 1px solid rgba(255,255,255,0.04);
+  box-shadow: 0 0 1em var(--black);
+  padding: 0.8em;
+}
+
+.profile-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 1em; color: var(--light-blue);
+}
+
+.avatar-frame {
+  background: var(--black);
+  border-radius: 0.7em;
+  height: 200px;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 1em; overflow: hidden; position: relative;
+}
+
+.lane-screen {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  background: var(--black);
+}
+
+.lane-screen::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(0deg, rgba(0,0,0,0.06) 0px, rgba(0,0,0,0.06) 1px, transparent 1px, transparent 3px);
+  pointer-events: none;
+  z-index: 10;
+}
+
+.customizer-label {
+  display: flex; align-items: center; gap: 0.5em;
+  font-size: 0.85em; color: var(--light-blue);
+  letter-spacing: 0.07em; text-transform: uppercase;
+  margin-bottom: 0.7em;
+}
+
+.toggle-row {
+  background: rgba(0,0,0,0.2);
+  border-radius: 0.5em;
+  display: flex; align-items: center;
+  padding: 0.6em 0.9em; margin-bottom: 0.5em; cursor: pointer;
+  transition: background 0.15s;
+}
+.toggle-row:hover { background: rgba(0,0,0,0.3); }
+
+.toggle-row select {
+  background: rgba(0,0,0,0.2); border: none; border-radius: 0.4em;
+  color: var(--white-smoke); padding: 0.6em; width: 100%;
+  font-family: var(--font-main); font-weight: 700;
+  font-size: 1em; letter-spacing: 0.05em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.toggle-row select:focus { outline: none; border: 1px solid var(--light-blue); }
+
+.toggle-pill {
+  width: 2.6em; height: 1.4em; border-radius: 100em;
+  background: var(--dark-blue);
+  position: relative; margin-right: 0.8em; flex-shrink: 0;
+  transition: background 0.2s;
+}
+.toggle-pill::after {
+  content: '';
+  position: absolute;
+  width: 1em; height: 1em; border-radius: 50%;
+  background: rgba(255,255,255,0.6);
+  top: 50%; left: 0.18em; transform: translateY(-50%);
+  transition: left 0.2s, background 0.2s;
+}
+.toggle-pill.on { background: var(--yellow); }
+.toggle-pill.on::after { left: calc(100% - 1.18em); background: white; }
+
+.toggle-label { font-size: 0.88em; letter-spacing: 0.07em; color: var(--white-smoke); }
+
+.contact-btn {
+  background: var(--green); color: var(--dark-green);
+  border: none; border-radius: 0.35em;
+  width: 100%; padding: 0.85em;
+  font-family: var(--font-main); font-size: 1em; font-weight: 900;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 0 4px 0 var(--dark-green);
+  transition: transform 0.1s, box-shadow 0.1s;
+  margin-bottom: 1em;
+}
+.contact-btn:hover  { transform: translateY(-1px); box-shadow: 0 5px 0 var(--dark-green); }
+.contact-btn:active { transform: translateY(4px); box-shadow: none; }
+
+.cta-yellow-btn {
+  background: var(--yellow); color: var(--dark-yellow);
+  border: none; border-radius: 0.35em;
+  padding: 0.85em;
+  font-family: var(--font-main); font-size: 1em; font-weight: 900;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 0 4px 0 var(--dark-yellow);
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+.cta-yellow-btn:hover  { transform: translateY(-1px); box-shadow: 0 5px 0 var(--dark-yellow); }
+.cta-yellow-btn:active { transform: translateY(4px); box-shadow: none; }
+
+.cta-red-btn {
+  background: var(--red); color: white;
+  border: none; border-radius: 0.35em;
+  padding: 0.6em 0.8em;
+  font-family: var(--font-main); font-size: 0.9em; font-weight: 700;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 0 3px 0 var(--dark-red);
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+.cta-red-btn:hover  { transform: translateY(-1px); }
+.cta-red-btn:active { transform: translateY(3px); box-shadow: none; }
+
+/* Mode toggle buttons (FRAME / END GAME) */
+.mode-btn {
+  flex: 1;
+  background: var(--dark-blue);
+  color: var(--light-blue);
+  border: none;
+  padding: 0.6em 0.4em;
+  border-radius: 0.35em;
+  cursor: pointer;
+  font-family: var(--font-main);
+  font-size: 0.88em;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  box-shadow: 0 3px 0 var(--black-blue);
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+.mode-btn.active {
+  background: var(--yellow);
+  color: var(--dark-yellow);
+  box-shadow: 0 3px 0 var(--dark-yellow);
+}
+.mode-btn.active-hcpcalc {
+  background: var(--purple);
+  color: white;
+  box-shadow: 0 3px 0 var(--dark-purple);
+}
+.mode-btn:hover  { transform: translateY(-1px); }
+.mode-btn:active { transform: translateY(3px); box-shadow: none; }
+
+.round-btn {
+  background: var(--medium-black); border-radius: 50%;
+  width: 2.6em; height: 2.6em;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--smoke); font-size: 1.1em;
+  box-shadow: 0 4px 0 var(--black);
+  transition: transform 0.1s, box-shadow 0.1s;
+  border: none;
+  cursor: pointer;
+}
+.round-btn:hover  { transform: translateY(-2px); box-shadow: 0 6px 0 var(--black); }
+.round-btn:active { transform: translateY(4px); box-shadow: none; }
+
+/* ─── LOCKED DOOR PANEL ─────────────────────────────── */
+.door-card {
+  position: relative; overflow: hidden;
+  display: flex; align-items: stretch;
+  min-height: 160px;
+}
+
+.door-half {
+  flex: 1;
+  background: var(--black);
+  transition: transform 0.45s cubic-bezier(0.34,1.56,0.64,1);
+}
+.door-half.left {
+  background-image: linear-gradient(45deg,
+    rgba(229,229,229,0.18) 7.5%, transparent 7.5%, transparent 42.5%,
+    rgba(229,229,229,0.18) 42.5%, rgba(229,229,229,0.18) 57.5%,
+    transparent 57.5%, transparent 92.5%,
+    rgba(229,229,229,0.18) 92.5%);
+  background-size: 8px 8px;
+}
+.door-half.right {
+  background-image: linear-gradient(-45deg,
+    rgba(229,229,229,0.18) 7.5%, transparent 7.5%, transparent 42.5%,
+    rgba(229,229,229,0.18) 42.5%, rgba(229,229,229,0.18) 57.5%,
+    transparent 57.5%, transparent 92.5%,
+    rgba(229,229,229,0.18) 92.5%);
+  background-size: 8px 8px;
+}
+
+.door-card.open .door-half.left  { transform: translateX(-100%); }
+.door-card.open .door-half.right { transform: translateX(100%); }
+.door-card.open .lock-btn { opacity: 0; pointer-events: none; }
+
+.lock-btn {
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--medium-black); border: none; border-radius: 50%;
+  width: 3em; height: 3em;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; color: var(--yellow);
+  box-shadow: 0 0 0.8em var(--black), 0 4px 0 var(--black);
+  transition: transform 0.1s, opacity 0.3s;
+  z-index: 2; font-size: 1em;
+}
+.lock-btn:hover  { transform: translate(-50%, -50%) scale(1.12); }
+.lock-btn:active { transform: translate(-50%, -50%) scale(0.93); }
+
+.door-content {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  pointer-events: none; opacity: 0;
+  transition: opacity 0.3s 0.3s;
+}
+.door-card.open .door-content { opacity: 1; pointer-events: all; }
+
+/* ─── SCREW SVG ─────────────────────────────────────── */
+.screw-icon {
+  width: 1.5em; height: 1.5em; opacity: 0.4;
+  color: var(--smoke);
+}
+
+/* ─── LANE ANIMATION ────────────────────────────────── */
+#lane-track {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg,
+    #8B7355 0%, #A0826D 5%, #8B7355 10%, #A0826D 20%,
+    #8B7355 30%, #A0826D 40%, #8B7355 50%, #A0826D 60%,
+    #8B7355 70%, #A0826D 80%, #8B7355 90%, #A0826D 100%);
+  background-size: 200% 100%;
+  animation: wood-grain 8s linear infinite;
+  overflow: hidden;
+}
+
+@keyframes wood-grain {
+  0% { background-position: 0% 0%; }
+  100% { background-position: 200% 0%; }
+}
+
+.lane-track.shaking {
+  animation: lane-shake 0.6s cubic-bezier(0.36,0,0.66,-0.56);
+}
+
+@keyframes lane-shake {
+  0%,100% { transform: translateX(0); }
+  25% { transform: translateX(4px); }
+  75% { transform: translateX(-4px); }
+}
+
+.gutter-left, .gutter-right {
+  position: absolute;
+  top: 0;
+  width: 15%;
+  height: 100%;
+  background: linear-gradient(90deg, #1a1a1a 0%, #2a2a2a 100%);
+  opacity: 0.8;
+}
+.gutter-left { left: 0; }
+.gutter-right { right: 0; }
+
+.foul-line {
+  position: absolute;
+  bottom: 15%;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--yellow);
+  opacity: 0.4;
+}
+
+.arrow-markers {
+  position: absolute;
+  bottom: 8%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80%;
+  height: 20px;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+}
+
+.arrow {
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-bottom: 8px solid var(--yellow);
+  opacity: 0.3;
+}
+
+#bowling-ball {
+  position: absolute;
+  bottom: 20%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 20px;
+  height: 20px;
+  background: radial-gradient(circle at 30% 30%, #333, #000);
+  border-radius: 50%;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.6);
+  z-index: 5;
+}
+
+#bowling-ball.rolling {
+  animation: bowl-roll 1.5s cubic-bezier(0.42,0,0.58,1) forwards;
+}
+
+@keyframes bowl-roll {
+  0% {
+    bottom: 20%;
+    left: 50%;
+    opacity: 1;
+  }
+  100% {
+    bottom: 75%;
+    left: 50%;
+    opacity: 1;
+  }
+}
+
+.pin-display {
+  position: absolute;
+  top: 8%;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+  z-index: 4;
+}
+
+.pin-col {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+}
+
+.pin {
+  width: 8px;
+  height: 8px;
+  background: white;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+  transition: all 0.3s ease;
+}
+
+.pin.down {
+  opacity: 0;
+  transform: scale(0.5) translateY(20px);
+}
+
+.strike-flash {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, rgba(236,178,54,0.8), transparent 70%);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.strike-flash.active {
+  animation: strike-flash-anim 1.1s ease-out;
+}
+
+@keyframes strike-flash-anim {
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.impact-particle {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.impact-strike {
+  background: var(--yellow);
+  opacity: 0.8;
+}
+
+.impact-spare {
+  background: var(--purple);
+  opacity: 0.7;
+}
+
+.impact-hit {
+  background: var(--red);
+  opacity: 0.6;
+}
+
+.impact-particle {
+  animation: particle-burst var(--dur) ease-out forwards;
+}
+
+@keyframes particle-burst {
+  0% {
+    transform: translate(0, 0) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--dx), var(--dy)) scale(0.1);
+    opacity: 0;
+  }
+}
+
+.bowler-figure {
+  position: absolute;
+  bottom: 10%;
+  left: 5%;
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #e72a6e 0%, #d91b5f 100%);
+  border-radius: 50% 50% 0 50%;
+  z-index: 2;
+  transition: transform 0.15s;
+}
+
+.bowler-figure.throwing {
+  animation: bowler-throw 0.6s ease-out;
+}
+
+@keyframes bowler-throw {
+  0% { transform: translateY(0) scaleX(1); }
+  50% { transform: translateY(-15px) scaleX(1.1); }
+  100% { transform: translateY(0) scaleX(1); }
+}
+
+/* ─── SCORECARDS ────────────────────────────────────── */
+#bowlers-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.9em;
+  flex: 1;
+}
+
+.bowler-card {
+  background: var(--dark-black);
+  border-radius: 0.5em;
+  border: 1px solid var(--soft-black);
+  padding: 0.9em;
+}
+
+.bowler-card.active-card {
+  border: 2px solid var(--yellow);
+  box-shadow: 0 0 12px rgba(236,178,54,0.3);
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+  margin-bottom: 0.7em;
+  flex-wrap: wrap;
+}
+
+.card-header input,
+.card-header select {
+  background: var(--soft-black);
+  border: 1px solid var(--medium-black);
+  color: var(--white-smoke);
+  border-radius: 0.3em;
+  padding: 0.5em;
+  font-family: var(--font-main);
+  font-weight: 700;
+  font-size: 0.9em;
+}
+
+.card-controls {
+  display: flex;
+  gap: 0.4em;
+  align-items: center;
+  flex: 1;
+  flex-wrap: wrap;
+  font-size: 0.8em;
+}
+
+.team-select {
+  max-width: 80px;
+}
+
+.hcp-label {
+  color: var(--light-blue);
+  font-size: 0.8em;
+}
+
+.hcp-input {
+  width: 45px;
+  text-align: center;
+}
+
+.active-toggle {
+  background: var(--dark-blue);
+  color: var(--light-blue);
+  border: none;
+  border-radius: 0.3em;
+  padding: 0.4em 0.6em;
+  font-size: 0.75em;
+  cursor: pointer;
+  font-weight: 600;
+  text-transform: uppercase;
+  transition: all 0.2s;
+}
+.active-toggle.on {
+  background: var(--yellow);
+  color: var(--dark-yellow);
+}
+
+.remove-btn {
+  background: var(--red);
+  color: white;
+  border: none;
+  border-radius: 0.2em;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  cursor: pointer;
+  font-size: 0.9em;
+  transition: all 0.2s;
+}
+
+.score-sheet {
+  overflow-x: auto;
+  margin-bottom: 0.7em;
+}
+
+.score-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85em;
+}
+
+.score-table th, .score-table td {
+  border: 1px solid var(--soft-black);
+  padding: 0.5em;
+  text-align: center;
+}
+
+.score-table th {
+  background: var(--soft-black);
+  color: var(--yellow);
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.75em;
+  letter-spacing: 0.05em;
+}
+
+.frame-cell {
+  background: var(--black);
+  color: var(--white-smoke);
+}
+
+.frame-cell.current-frame {
+  background: rgba(236,178,54,0.15);
+  border: 1px solid var(--yellow);
+}
+
+.cell-rolls {
+  display: flex;
+  gap: 2px;
+  justify-content: center;
+  flex-wrap: wrap;
+  min-height: 20px;
+}
+
+.roll-badge {
+  font-size: 0.7em;
+  padding: 2px 4px;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.roll-X {
+  background: var(--yellow);
+  color: var(--dark-yellow);
+  font-weight: 900;
+}
+
+.roll-spare {
+  background: var(--purple);
+  color: white;
+  font-weight: 900;
+}
+
+.roll-gutter {
+  background: var(--red);
+  color: white;
+}
+
+.roll-num {
+  background: var(--dark-black);
+  color: var(--smoke);
+}
+
+.frame-score {
+  font-size: 0.75em;
+  color: var(--light-blue);
+  font-weight: 600;
+  margin-top: 2px;
+  min-height: 14px;
+}
+
+.total-cell, .hcp-total-cell {
+  background: var(--dark-blue);
+  color: var(--yellow);
+  font-weight: 900;
+}
+
+.input-panel {
+  display: flex;
+  gap: 0.4em;
+  flex-wrap: wrap;
+  font-size: 0.8em;
+}
+
+.input-row {
+  display: flex;
+  gap: 0.4em;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.throw-btn {
+  background: var(--dark-black);
+  color: var(--smoke);
+  border: 1px solid var(--soft-black);
+  border-radius: 0.2em;
+  padding: 0.4em 0.6em;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.1s;
+  font-size: 0.9em;
+}
+.throw-btn:hover { background: var(--soft-black); }
+.throw-btn:active { transform: translateY(1px); }
+
+.throw-btn.strike {
+  background: var(--yellow);
+  color: var(--dark-yellow);
+  border-color: var(--dark-yellow);
+  box-shadow: 0 2px 0 var(--dark-yellow);
+}
+.throw-btn.strike:active { box-shadow: none; }
+
+.throw-btn.spare-btn {
+  background: var(--purple);
+  color: white;
+  border-color: var(--dark-purple);
+  box-shadow: 0 2px 0 var(--dark-purple);
+}
+.throw-btn.spare-btn:active { box-shadow: none; }
+
+.throw-btn.gutter-btn {
+  background: var(--red);
+  color: white;
+  border-color: var(--dark-red);
+  box-shadow: 0 2px 0 var(--dark-red);
+}
+.throw-btn.gutter-btn:active { box-shadow: none; }
+
+.clear-frame-btn {
+  background: var(--dark-black);
+  color: var(--smoke);
+  border: 1px solid var(--soft-black);
+  border-radius: 0.2em;
+  padding: 0.4em 0.6em;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.1s;
+  font-size: 0.9em;
+}
+
+.frame-indicator {
+  font-size: 0.85em;
+  color: var(--light-blue);
+  font-weight: 600;
+}
+
+.endgame-body {
+  display: flex;
+  gap: 1em;
+  margin-bottom: 0.7em;
+  padding: 0.6em;
+  background: var(--black);
+  border-radius: 0.3em;
+}
+
+.endgame-score-wrap, .endgame-hcp-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3em;
+}
+
+.endgame-label {
+  font-size: 0.75em;
+  color: var(--smoke);
+  text-transform: uppercase;
+}
+
+.endgame-score-input {
+  background: var(--soft-black);
+  border: 1px solid var(--medium-black);
+  color: var(--yellow);
+  padding: 0.5em;
+  border-radius: 0.2em;
+  font-weight: 600;
+  text-align: center;
+}
+
+.endgame-hcp-val {
+  color: var(--yellow);
+  font-weight: 900;
+  font-size: 1.1em;
+}
+
+.complete-status {
+  color: var(--green);
+  font-weight: 600;
+  font-size: 0.95em;
+}
+
+/* ─── TEAM SCORES ────────────────────────────────────── */
+.team-score-block {
+  background: var(--dark-black);
+  border-radius: 0.5em;
+  padding: 1em;
+  margin-bottom: 0.7em;
+  border: 1px solid var(--soft-black);
+}
+
+.team-score-label {
+  font-size: 0.8em;
+  color: var(--light-blue);
+  text-transform: uppercase;
+  margin-bottom: 0.4em;
+  letter-spacing: 0.05em;
+}
+
+.team-score-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 0.4em;
+}
+
+.team-score-label-sm {
+  font-size: 0.75em;
+  color: var(--smoke);
+}
+
+.team-score-value {
+  font-size: 1.8em;
+  font-weight: 900;
+  color: var(--yellow);
+}
+
+/* ─── SEASON TRACKER ────────────────────────────────── */
+.season-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8em;
+}
+
+.season-table th, .season-table td {
+  border: 1px solid var(--soft-black);
+  padding: 0.5em;
+  text-align: center;
+}
+
+.season-table th {
+  background: var(--soft-black);
+  color: var(--yellow);
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.7em;
+}
+
+.season-body {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.season-empty {
+  text-align: center;
+  color: var(--smoke);
+  padding: 1.5em;
+  font-size: 0.85em;
+}
+
+/* ─── HANDICAP & PROJECTION CARDS ──────────────────── */
+#hcp-edge-label {
+  text-align: center;
+  font-size: 0.9em;
+  color: var(--yellow);
+  font-weight: 600;
+  margin-bottom: 0.8em;
+}
+
+/* ─── HANDICAP EDGE DISPLAY ─────────────────────────────── */
+.hcp-edge-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1.4em 1em;
+  gap: 0.5em;
+}
+
+.hcp-edge-team-name {
+  font-size: 1.3em;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--yellow);
+  text-shadow: 0 0 18px rgba(236, 178, 54, 0.7), 0 0 40px rgba(236, 178, 54, 0.3);
+  text-align: center;
+  line-height: 1.1;
+}
+
+.hcp-edge-label-sm {
+  font-size: 0.72em;
+  letter-spacing: 0.14em;
+  color: var(--soft-black);
+  text-transform: uppercase;
+  text-align: center;
+}
+
+#hcp-diff-number {
+  font-size: 5em;
+  font-weight: 900;
+  color: var(--yellow);
+  line-height: 1;
+  text-align: center;
+  text-shadow:
+    0 0 10px rgba(236, 178, 54, 0.9),
+    0 0 25px rgba(236, 178, 54, 0.6),
+    0 0 60px rgba(236, 178, 54, 0.3);
+  animation: hcp-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes hcp-pulse {
+  0%,100% { text-shadow: 0 0 10px rgba(236,178,54,0.9), 0 0 25px rgba(236,178,54,0.6), 0 0 60px rgba(236,178,54,0.3); }
+  50%      { text-shadow: 0 0 16px rgba(236,178,54,1),   0 0 40px rgba(236,178,54,0.8), 0 0 90px rgba(236,178,54,0.5); }
+}
+
+.hcp-edge-pins-label {
+  font-size: 0.78em;
+  color: var(--smoke);
+  letter-spacing: 0.08em;
+}
+
+.hcp-edge-divider {
+  width: 60%;
+  height: 1px;
+  background: linear-gradient(to right, transparent, var(--soft-black), transparent);
+  margin: 0.4em 0;
+}
+
+#hcp-player-breakdown {
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+#projection-content {
+  font-size: 0.85em;
+}
+
+/* ─── RESPONSIVE ────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .main-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .main-grid {
+    grid-template-columns: 1fr;
+    gap: 0.8em;
+  }
+
+  .card-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .card-controls {
+    width: 100%;
+  }
+
+  .score-table {
+    font-size: 0.7em;
+  }
+
+  .control-button-row {
+    flex-direction: column;
+  }
+
+  .control-button-row button {
+    min-width: auto;
+  }
+}
+
+/* column layout helpers */
+.col { display: flex; flex-direction: column; gap: 1.11em; }
+.flex-1 { flex: 1; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════
+     INTRO SCREEN
+═══════════════════════════════════════════════════════ -->
+<div id="intro">
+  <div class="intro-chain"></div>
+  <div class="intro-badge">
+    <div class="intro-screws">
+      <svg class="screw-icon" viewBox="0 0 32 32" fill="none"><path fill-rule="evenodd" clip-rule="evenodd" d="M16 0C24.84 0 32 7.16 32 16s-7.16 16-16 16S0 24.84 0 16 7.16 0 16 0zm-6.35 13.76A2 2 0 0 0 7.65 15.76a2 2 0 0 0 2 2H14v4.35a2 2 0 0 0 4 0V17.76h4.35a2 2 0 0 0 0-4H18V9.41a2 2 0 0 0-4 0v4.35h-4.35z" fill="currentColor"/></svg>
+      <div class="dot-grid"></div>
+      <svg class="screw-icon" viewBox="0 0 32 32" fill="none"><path fill-rule="evenodd" clip-rule="evenodd" d="M16 0C24.84 0 32 7.16 32 16s-7.16 16-16 16S0 24.84 0 16 7.16 0 16 0zm-6.35 13.76A2 2 0 0 0 7.65 15.76a2 2 0 0 0 2 2H14v4.35a2 2 0 0 0 4 0V17.76h4.35a2 2 0 0 0 0-4H18V9.41a2 2 0 0 0-4 0v4.35h-4.35z" fill="currentColor"/></svg>
+    </div>
+    <div class="intro-screen-box">
+      <h2>WEDNESDAY BOWLING LEAGUE</h2>
+      <p id="intro-week-label" style="color:var(--yellow); font-size:1.1em; font-weight:700; letter-spacing:0.12em;">WEEK —</p>
+    </div>
+    <div style="position:relative; display:flex; justify-content:center;">
+      <button class="power-btn" id="powerBtn" onclick="initDashboard()">
+        <svg width="1.3em" height="1.3em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 2v6M6.3 6.3a8 8 0 1 0 11.4 0"/></svg>
+        <span class="click-bubble">CLICK</span>
+      </button>
+    </div>
+    <div class="intro-screws" style="margin-top:0.8em;">
+      <svg class="screw-icon" viewBox="0 0 32 32" fill="none"><path fill-rule="evenodd" clip-rule="evenodd" d="M16 0C24.84 0 32 7.16 32 16s-7.16 16-16 16S0 24.84 0 16 7.16 0 16 0zm-6.35 13.76A2 2 0 0 0 7.65 15.76a2 2 0 0 0 2 2H14v4.35a2 2 0 0 0 4 0V17.76h4.35a2 2 0 0 0 0-4H18V9.41a2 2 0 0 0-4 0v4.35h-4.35z" fill="currentColor"/></svg>
+      <div class="dot-grid"></div>
+      <svg class="screw-icon" viewBox="0 0 32 32" fill="none"><path fill-rule="evenodd" clip-rule="evenodd" d="M16 0C24.84 0 32 7.16 32 16s-7.16 16-16 16S0 24.84 0 16 7.16 0 16 0zm-6.35 13.76A2 2 0 0 0 7.65 15.76a2 2 0 0 0 2 2H14v4.35a2 2 0 0 0 4 0V17.76h4.35a2 2 0 0 0 0-4H18V9.41a2 2 0 0 0-4 0v4.35h-4.35z" fill="currentColor"/></svg>
+    </div>
+  </div>
+  <div class="intro-hint">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+    Roster and schedule loaded automatically
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     MAIN DASHBOARD
+═══════════════════════════════════════════════════════ -->
+<div id="dashboard">
+  <div class="main-grid">
+
+    <!-- ══════════════════════════════════════
+         COL 1 — TEAM ROSTERS + CONTROLS
+    ══════════════════════════════════════ -->
+    <div class="col" style="display:flex; flex-direction:column; gap:0.8em;">
+
+      <!-- HANDICAP EDGE (moved from right col) -->
+      <div class="card">
+        <div class="card__container">
+          <div class="card-titlebar">
+            <span class="card-titlebar__text">HANDICAP EDGE</span>
+          </div>
+          <div class="hcp-edge-wrap">
+            <div class="hcp-edge-label-sm">TEAM WITH EDGE</div>
+            <div class="hcp-edge-team-name" id="hcp-edge-team-name">—</div>
+            <div class="hcp-edge-divider"></div>
+            <div class="hcp-edge-label-sm">PINS</div>
+            <div id="hcp-diff-number">—</div>
+            <div class="hcp-edge-pins-label" id="hcp-edge-pins-label"></div>
+          </div>
+          <div id="hcp-player-breakdown" style="font-size:0.8em; padding:0 0.2em 0.6em;"></div>
+        </div>
+      </div>
+
+      <!-- MATCHUP PICKER -->
+      <div class="card">
+        <div class="card-titlebar">
+          <span class="card-titlebar__text">MATCHUP</span>
+        </div>
+        <div style="padding:0.4em 0;">
+          <div style="font-size:0.72em; letter-spacing:0.1em; color:var(--light-blue); margin-bottom:0.4em;">YOUR TEAM</div>
+          <select id="your-team-select" onchange="onYourTeamChange(this.value)" style="width:100%; background:var(--dark-black); color:var(--white-smoke); border:1px solid var(--soft-black); border-radius:0.4em; padding:0.5em 0.6em; font-family:'Barlow Condensed',sans-serif; font-size:0.95em; font-weight:700; letter-spacing:0.05em; margin-bottom:0.7em;">
+            <option value="">— SELECT YOUR TEAM —</option>
+          </select>
+          <div id="game-buttons" style="display:flex; flex-direction:column; gap:0.4em;"></div>
+          <div id="current-matchup" style="margin-top:0.6em; text-align:center; font-size:0.82em; font-family:'Barlow Condensed',sans-serif; font-weight:700; letter-spacing:0.05em; min-height:1.2em;"></div>
+        </div>
+      </div>
+
+      <!-- TEAM A ROSTER CARD -->
+      <div class="team-roster-card side-a">
+        <div class="team-roster-header">
+          <span class="team-name team-a-label" id="team-a-name-label">YOUR TEAM</span>
+          <select id="team-a-select" style="display:none;"><option value="">— Select Team —</option></select>
+        </div>
+        <div id="team-a-roster" class="roster-list">
+          <div class="roster-empty">Select a team to load players</div>
+        </div>
+        <div class="roster-footer">
+          <span id="team-a-count-label">0 / 3 selected</span>
+          <div class="selection-dots" id="team-a-dots">
+            <div class="selection-dot"></div>
+            <div class="selection-dot"></div>
+            <div class="selection-dot"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TEAM B ROSTER CARD -->
+      <div class="team-roster-card side-b">
+        <div class="team-roster-header">
+          <span class="team-name team-b-label" id="team-b-name-label">OPPONENT</span>
+          <select id="team-b-select" style="display:none;"><option value="">— Select Team —</option></select>
+        </div>
+        <div id="team-b-roster" class="roster-list">
+          <div class="roster-empty">Select a team to load players</div>
+        </div>
+        <div class="roster-footer">
+          <span id="team-b-count-label">0 / 3 selected</span>
+          <div class="selection-dots" id="team-b-dots">
+            <div class="selection-dot"></div>
+            <div class="selection-dot"></div>
+            <div class="selection-dot"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- hidden week input for season tracker compatibility -->
+      <input type="number" id="current-week-display" value="1" min="1" style="display:none;" onchange="setWeek(this.value)" />
+
+    </div>
+
+    <!-- ══════════════════════════════════════
+         COL 2 — LIVE SCORE & SCORECARDS
+    ══════════════════════════════════════ -->
+    <div class="col">
+
+      <!-- LIVE SCORE CARD -->
+      <div class="card">
+        <div class="card-titlebar">
+          <span class="card-titlebar__text">LIVE SCORE</span>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:1em; align-items:center;">
+          <div class="team-score-block">
+            <div class="team-score-label team-a-label">TEAM A</div>
+            <div class="team-score-row">
+              <span class="team-score-label-sm">Raw</span>
+              <span class="team-score-value" id="team-a-score" style="color:var(--red);">0</span>
+            </div>
+            <div class="team-score-row">
+              <span class="team-score-label-sm">+ HCP</span>
+              <span class="team-score-value" id="team-a-hcp-score">0</span>
+            </div>
+          </div>
+          <div class="team-score-block">
+            <div class="team-score-label team-b-label">TEAM B</div>
+            <div class="team-score-row">
+              <span class="team-score-label-sm">Raw</span>
+              <span class="team-score-value" id="team-b-score" style="color:var(--light-blue);">0</span>
+            </div>
+            <div class="team-score-row">
+              <span class="team-score-label-sm">+ HCP</span>
+              <span class="team-score-value" id="team-b-hcp-score">0</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SCORECARDS CARD -->
+      <div class="card" style="flex:1; display:flex; flex-direction:column;">
+        <div class="card-titlebar">
+          <span class="card-titlebar__text">SCORECARDS</span>
+          <button class="card-titlebar__link" onclick="addBowler()" style="background:var(--green); color:white; border:none; padding:0.4em 0.8em; border-radius:0.3em; cursor:pointer;">+ ADD BOWLER</button>
+        </div>
+        <div id="bowlers-grid"></div>
+      </div>
+
+      <!-- SEASON TRACKER -->
+      <div class="card">
+        <div class="card__container" style="width:100%; overflow:auto;">
+          <div class="card-titlebar">
+            <span class="card-titlebar__text">SEASON TRACKER</span>
+          </div>
+          <div class="season-body">
+            <div id="season-body"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════
+         COL 3 — HANDICAP & PROJECTION
+    ══════════════════════════════════════ -->
+    <div class="col">
+
+      <!-- HANDICAP CALCULATOR (unlocked, visible in HCP CALC mode) -->
+      <div class="card" id="hcp-calc-card" style="display:none;">
+        <div class="card__container">
+          <div class="card-titlebar">
+            <div class="card-titlebar__icon">
+              <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="16" y2="14"/><line x1="8" y1="18" x2="12" y2="18"/></svg>
+            </div>
+            <span class="card-titlebar__text">HANDICAP CALCULATOR</span>
+          </div>
+          <div id="hcp-calc-content">
+            <div style="text-align:center; color:var(--soft-black); font-size:0.8em; padding:1.5em 0; font-family:var(--font-body); font-weight:400;">
+              Select players from the team rosters to calculate
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PROJECTED OUTCOME (shown in FRAME/END GAME mode) -->
+      <div class="card" id="proj-outcome-card">
+        <div class="card__container">
+          <div class="card-titlebar">
+            <span class="card-titlebar__text">PROJECTED OUTCOME</span>
+          </div>
+          <div id="projection-content"></div>
+        </div>
+      </div>
+
+      <!-- FILE INFO CARD -->
+      <div class="card">
+        <div class="card-titlebar">
+          <span class="card-titlebar__text">ROSTER FILE</span>
+        </div>
+        <div style="font-size:0.85em; color:var(--smoke);">
+          <div style="margin-bottom:0.6em;">
+            <div style="color:var(--light-blue); font-weight:600; margin-bottom:0.3em;">Roster</div>
+            <div id="roster-filename" style="font-family:'JetBrains Mono',monospace; color:var(--yellow); font-size:0.9em; word-break:break-all;">None loaded</div>
+          </div>
+          <div style="margin-bottom:0.6em; display:grid; grid-template-columns:1fr 1fr; gap:0.5em;">
+            <div>
+              <div style="color:var(--light-blue); font-weight:600; margin-bottom:0.2em;">Players</div>
+              <div id="roster-player-count">0</div>
+            </div>
+            <div>
+              <div style="color:var(--light-blue); font-weight:600; margin-bottom:0.2em;">Teams</div>
+              <div id="roster-team-count">0</div>
+            </div>
+          </div>
+
+          <!-- HANDICAP SHEET DIVIDER -->
+          <div style="border-top:1px solid rgba(255,255,255,0.07); margin:0.7em 0;"></div>
+          <div style="color:var(--light-blue); font-weight:600; margin-bottom:0.4em;">Handicap Sheet</div>
+          <div id="hcp-sheet-filename" style="font-family:'JetBrains Mono',monospace; color:var(--smoke); font-size:0.85em; word-break:break-all; margin-bottom:0.5em;">Not loaded — using formula</div>
+          <div id="hcp-sheet-status" style="font-size:0.82em; color:var(--green); margin-bottom:0.65em; display:none;"></div>
+          <label for="hcp-sheet-input" style="
+            display:block; text-align:center; cursor:pointer;
+            background:var(--medium-black); border:1px solid rgba(83,108,187,0.4);
+            color:var(--light-blue); font-family:'Barlow Condensed',sans-serif;
+            font-weight:700; font-size:0.78em; letter-spacing:0.1em;
+            padding:0.55em 0.8em; border-radius:0.4em;
+            transition:background 0.15s, border-color 0.15s;
+          " onmouseover="this.style.background='rgba(83,108,187,0.18)'; this.style.borderColor='rgba(83,108,187,0.7)'"
+             onmouseout="this.style.background='var(--medium-black)'; this.style.borderColor='rgba(83,108,187,0.4)'">
+            LOAD HANDICAP CSV
+          </label>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- BOTTOM BAR — MODE SWITCHER + GAME CONTROLS -->
+  <div id="bottom-bar" style="
+    display:flex; align-items:center; gap:0.7em;
+    padding:0.75em 1.2em;
+    background:var(--black);
+    border-top:1px solid rgba(255,255,255,0.07);
+    flex-wrap:wrap;
+  ">
+    <div style="display:flex; gap:0.4em; flex:1; min-width:0;">
+      <button id="mode-btn-hcpcalc" class="mode-btn active-hcpcalc" onclick="setScoringMode('hcpcalc')" style="flex:1;">HCP CALC</button>
+      <button id="mode-btn-frame"   class="mode-btn"               onclick="setScoringMode('frame')"   style="flex:1;">FRAME</button>
+      <button id="mode-btn-endgame" class="mode-btn"               onclick="setScoringMode('endgame')" style="flex:1;">END GAME</button>
+    </div>
+    <div style="width:1px; height:2em; background:rgba(255,255,255,0.1);"></div>
+    <button class="contact-btn" onclick="saveGameToSeason()" style="white-space:nowrap;">SAVE WEEK</button>
+    <button class="cta-yellow-btn" id="lock-in-btn-actual" onclick="lockGameOrder()" style="white-space:nowrap;">LOCK ORDER</button>
+    <button class="cta-red-btn"    onclick="resetGame()"    style="white-space:nowrap;">RESET</button>
+  </div>
+
+</div>
+
+<!-- Hidden file inputs — must be in DOM before script runs -->
+<input type="file" id="roster-file-input" accept=".csv" style="display:none; position:absolute;" />
+<input type="file" id="hcp-sheet-input" accept=".csv" style="display:none; position:absolute;" />
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════════
+// EMBEDDED LEAGUE DATA — UPDATE THESE EACH WEEK
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const LEAGUE_WEEK = 'WEEK 10'; // ← change this every week
+
+// Set week on intro badge immediately — runs before anything else can fail
+document.getElementById('intro-week-label').textContent = LEAGUE_WEEK;
+
+const ROSTER_CSV = `,,,,,,,,
+,,,League Average,132.91,,,,
+,,,Average High Score,165,,,,
+,,,League High,254,,,,
+,,,,,,,,
+,Rank,Player,Team,Avg.,High ,Std. D,Total,# Played
+,1,Dex J,Slice & Dice,184.88,254,32,1479,8
+,2,Sam,Pin Chitters,181.90,217,22,1819,10
+,3,Boyd,Easy Pickup 2,178.25,220,32,713,4
+,4,Paul N,Midwest Vacuum,174.50,201,19,698,4
+,5,Jesse,Stranger Pins,162.50,204,27,1950,12
+,6,Tanner,Dolla Dolla Bowl Y'all,161.92,219,28,1943,12
+,7,Joe,Dolla Dolla Bowl Y'all,160.38,201,22,1283,8
+,8,Chris,Easy Pickup 2,160.33,211,33,962,6
+,9,Josh M,The Dude,159.23,245,36,2070,13
+,10,Yas,Pin Chitters,159.13,178,15,1273,8
+,11,John R,Easy Pickup 2,158.15,184,19,2056,13
+,12,Alex E,Lickety Splitz,157.15,200,23,2043,13
+,13,Mike,Pin Chitters,156.90,188,20,1569,10
+,14,Matt L,Michael BOWLton's Greatest Splits,155.70,183,20,1557,10
+,15,Shane ,Easy Pickup 2,155.29,169,15,1087,7
+,16,Chris (CJ) ,Captain Ryan and his TBDs,155.20,187,19,776,5
+,17,Dylan,Midwest Vacuum,154.25,191,20,1234,8
+,18,Mike Rotenberg,Ozzie Guillen,152.57,201,23,2136,14
+,19,RJ (Juice),Midwest Vacuum,152.11,176,18,1369,9
+,20,Deeds,Lickety Splitz,151.10,182,25,1511,10
+,21,Alan,Michael BOWLton's Greatest Splits,150.83,205,23,1810,12
+,22,Andy,Midwest Vacuum,150.50,160,13,301,2
+,23,James,Slice & Dice,150.38,209,33,1203,8
+,24,Steve B,Gutter & Sons,150.20,174,19,751,5
+,25,Thayer M,Michael BOWLton's Greatest Splits,150.10,177,15,1501,10
+,26,Linus,Singles Team,149.90,202,28,1499,10
+,27,JJ,Stranger Pins,149.25,179,15,1791,12
+,28,Mark,Midwest Vacuum,149.25,161,16,597,4
+,29,Aaron,Pin Chitters,149.11,210,30,1342,9
+,30,Chester,Glory Bowls,148.00,148,,148,1
+,31,Evan,Captain Ryan and his TBDs,147.40,184,26,1474,10
+,32,Alex,Singles Team,146.38,219,32,1171,8
+,33,GJ,Gutter & Sons,145.82,170,17,1604,11
+,34,Luigi,Stranger Pins,145.29,199,25,1017,7
+,35,Dan,Pin Chitters,143.88,167,18,1151,8
+,36,Clint,Slice & Dice,143.00,167,22,1144,8
+,37,Nikon,Michael BOWLton's Greatest Splits,141.22,166,21,1271,9
+,38,Joey,Pin Chitters,141.22,176,20,1271,9
+,39,Derek S,Michael BOWLton's Greatest Splits,140.80,168,19,1408,10
+,40,Kat,Glory Bowls,140.71,163,17,985,7
+,41,Vin,Slice & Dice,139.13,172,21,1113,8
+,42,Anthony,Slice & Dice,137.38,184,35,1099,8
+,43,Blake J,Gutter & Sons,137.33,151,20,412,3
+,44,Brendan P,Easy Pickup 2,137.00,182,28,1096,8
+,45,Ang,Easy Pickup 2,135.38,181,27,1083,8
+,46,Ryan,Midwest Vacuum,134.75,147,16,539,4
+,47,Sarah,Dolla Dolla Bowl Y'all,134.67,174,24,1212,9
+,48,Matt,Gutter & Sons,134.00,134,,134,1
+,49,Keith,Dolla Dolla Bowl Y'all,133.38,182,23,1067,8
+,50,Noel,Gutter & Sons,133.20,150,15,1332,10
+,51,Tara,The Dude,132.88,160,19,1063,8
+,52,Kevin,Singles Team,131.00,171,21,1179,9
+,53,Sam H,Lickety Splitz,130.40,168,25,652,5
+,54,Kevin,Captain Ryan and his TBDs,130.15,158,16,1692,13
+,55,Kelvin,Captain Ryan and his TBDs,128.33,151,17,1155,9
+,56,Mike Baratta,Ozzie Guillen,126.82,171,21,1395,11
+,57,Michael Beckwith,Ozzie Guillen,126.75,176,28,1521,12
+,58,Scott P,Easy Pickup 2,126.25,180,32,1010,8
+,59,Pat,Lickety Splitz,125.50,155,17,753,6
+,60,Tati,Stranger Pins,125.33,173,27,752,6
+,61,Peter,Midwest Vacuum,125.00,161,32,375,3
+,62,Logan,Gutter & Sons,124.67,173,29,1496,12
+,63,Carlin,Slice & Dice,124.00,163,22,1240,10
+,64,Evan,Lickety Splitz,123.89,162,25,1115,9
+,65,Big Al,Glory Bowls,123.45,187,25,1358,11
+,66,Jordan,Ozzie Guillen,122.67,177,29,1472,12
+,67,Tom B,Gutter & Sons,122.00,133,11,488,4
+,68,Chris,Lickety Splitz,121.82,151,19,1340,11
+,69,Fabian,Stranger Pins,0.00,,,0,0
+,70,Juli,Stranger Pins,120.36,149,19,1324,11
+,71,Ghost Team - P1,Ghost Team,120.00,120,0,2160,18
+,72,Ghost Team - P2,Ghost Team,120.00,120,0,2160,18
+,73,Ghost Team - P3,Ghost Team,120.00,120,0,2160,18
+,74,Ian,Singles Team,119.56,152,18,1076,9
+,75,Randy L.,Singles Team,119.44,153,19,1075,9
+,76,James C. (JC),Singles Team,100.63,127,21,805,8
+,77,Steven,Glory Bowls,119.00,148,17,1071,9
+,78,Blake P,Gutter & Sons,118.80,175,27,594,5
+,79,Tucker,Dolla Dolla Bowl Y'all,118.00,136,14,472,4
+,80,Travis,Glory Bowls,117.82,149,18,1767,15
+,81,Neil,The Dude,117.50,127,9,470,4
+,82,Graham,Michael BOWLton's Greatest Splits,116.73,161,21,1751,15
+,83,Michaela,LIC My Balls,116.63,151,22,933,8
+,84,Sven,The Dude,116.50,152,20,466,4
+,85,Iris,The Dude,116.25,133,11,465,4
+,86,Jamila,LIC My Balls,115.00,133,12,460,4
+,87,Steph,Michael BOWLton's Greatest Splits,114.00,114,,114,1
+,88,Joel,Glory Bowls,114.00,114,,114,1
+,89,Todd,Dolla Dolla Bowl Y'all,108.75,118,13,435,4
+,90,Lauren,LIC My Balls,106.67,140,24,640,6
+,91,Marycate,LIC My Balls,106.29,128,18,744,7
+,92,Sarah G,The Dude,105.33,127,19,316,3
+,93,Jenn,LIC My Balls,102.10,139,21,1021,10
+,94,Clara,Dolla Dolla Bowl Y'all,101.80,131,17,509,5
+,95,Rachel,Glory Bowls,101.00,101,,101,1
+,96,James C. (JC),Singles Team,100.63,127,21,805,8
+,97,Patrick,Glory Bowls,96.75,119,12,774,8
+,98,Sami,LIC My Balls,90.57,114,19,634,7
+,99,Walker,Ozzie Guillen,89.80,111,13,449,5
+,100,Tony,Captain Ryan and his TBDs,81.83,101,16,491,6
+,101,Easy Pickup 2 - A2,Easy Pickup 2,0.00,,,0,0
+,102,Dolla Dolla Bowl Y'all - A2,Dolla Dolla Bowl Y'all,0.00,,,0,0
+,103,Slice & Dice - A2,Slice & Dice,0.00,,,0,0
+,104,Ozzie Guillen - P6,Ozzie Guillen,0.00,,,0,0
+,105,Ozzie Guillen - A1,Ozzie Guillen,0.00,,,0,0
+,106,Ozzie Guillen - A2,Ozzie Guillen,0.00,,,0,0
+,107,Joel,Glory Bowls,0.00,,,0,0
+,108,Anthony,Lickety Splitz,0.00,,,0,0
+,109,Lickety Splitz - A2,Lickety Splitz,0.00,,,0,0
+,110,Captain Ryan and his TBDs - A1,Captain Ryan and his TBDs,0.00,,,0,0
+,111,Captain Ryan and his TBDs - A2,Captain Ryan and his TBDs,0.00,,,0,0
+,112,Singles Team - A1,Singles Team,0.00,,,0,0
+,113,Singles Team - A2,Singles Team,0.00,,,0,0
+,114,Ghost Team - P4,Ghost Team,0.00,,,0,0
+,115,Ghost Team - P5,Ghost Team,0.00,,,0,0
+,116,Ghost Team - P6,Ghost Team,0.00,,,0,0
+,117,Ghost Team - A1,Ghost Team,0.00,,,0,0
+,118,Ghost Team - A2,Ghost Team,0.00,,,0,0
+,119,Pin Chitters - A1,Pin Chitters,0.00,,,0,0
+,120,Pin Chitters - A2,Pin Chitters,0.00,,,0,0
+,121,Doug,Stranger Pins,121.50,140,12,729,6
+,122,Stranger Pins - A2,Stranger Pins,0.00,,,0,0
+,123,The Dude - A1,The Dude,0.00,,,0,0
+,124,The Dude - A2,The Dude,0.00,,,0,0
+,125,LIC My Balls - A1,LIC My Balls,0.00,,,0,0
+,126,LIC My Balls - A2,LIC My Balls,0.00,,,0,0
+,127,Steph,Michael BOWLton's Greatest Splits,0.00,,,0,0
+,128,Michael BOWLton's Greatest Splits - A2,Michael BOWLton's Greatest Splits,0.00,,,0,0`;
+
+const HANDICAP_CSV = `Dolla Dolla Bowl Y'all,,,Stranger Pins,,,Easy Pickup 2,
+Sarah,46,,Jesse,26,,Scott P,52
+Joe,28,,Tati,52,,Ang,45
+Clara,69,,Luigi,38,,Brendan P,44
+Keith,47,,Juli,56,,Shane,31
+Todd,64,,Doug,55,,Boyd,15
+Tanner,27,,JJ,36,,John R,29
+Tucker,60,,Fabian,57,,Chris,28
+,,,,,,,
+,,,,,,,
+Slice & Dice,,,LIC My Balls,,,Midwest Vacuum,
+Dex J,11,,Michaela,57,,Paul N,18
+Clint,40,,Jenn,69,,RJ (Juice),34
+James,35,,Sami,77,,Peter,52
+Anthony,44,,Jamila,62,,Andy,40
+Mike,58,,Lauren,65,,Mark,36
+Carlin,53,,Marycate,66,,Dylan,32
+Vin,43,,,,,Dan (Bear),63
+,,,,,,Ryan,46
+,,,,,,,
+Glory Bowls,,,Ghost Team,,,Gutter & Sons,
+Kat,42,,Ghost Team - P1,56,,GJ,38
+Big Al,54,,Ghost Team - P2,56,,Blake P,63
+Travis,61,,Ghost Team - P3,56,,Steve B,35
+Joel,46,,Ghost Team - P4,56,,Tom B,55
+Patrick,72,,Ghost Team - P5,56,,Logan,53
+Steven,59,,Ghost Team - P6,56,,Noel,47
+Rachel,59,,Ghost Team - A1,56,,Matt,43
+Chester,51,,Ghost Team - A2,56,,Blake J,44
+,,,,,,,
+Captain Ryan and his TBDs,,,Lickety Splitz,,,Singles Team,
+Ryan,60,,Sam H,49,,Alex,38
+Tony,83,,Alex E,30,,Kevin,48
+Evan,37,,Pat,52,,Linus,35
+Kevin,49,,Deeds,34,,Ian,56
+Chris (CJ),31,,Chris,55,,Randy L.,61
+Kelvin,50,,Evan,53,,James C. (JC),70
+,,,Anthony,57,,,
+,,,,,,,
+,,,,,,,
+The Dude,,,Michael BOWLton's Greatest Splits,,,,
+Josh M,29,,Derek S,41,,Generic Sub HCap,56
+Sarah G,66,,Matt L,31,,,
+Neil,61,,Thayer M,35,,,
+Tara,47,,Alan,34,,,
+Sven,59,,Graham,61,,,
+Iris,63,,Nikon,41,,,
+The Dude - A1,56,,Steph,58,,,
+The Dude - A2,56,,Michael BOWLton's Greatest Splits - A2,56,,,
+,,,,,,,
+Ozzie Guillen,,,Pin Chitters,,,,
+Jordan,54,,Sam,13,,,
+Michael Beckwith,51,,Joey,41,,,
+Mike Rotenberg,33,,Aaron,36,,,
+Walker,77,,Mike,30,,,
+Mike Baratta,51,,Yas,29,,,
+Ozzie Guillen - P6,56,,Dan,39,,,
+Ozzie Guillen - A1,56,,Pin Chitters - A1,56,,,
+Ozzie Guillen - A2,56,,Pin Chitters - A2,56,,,`;
+
+const SCHEDULE_CSV = `Week 10,,,
+7:00,,,
+Lane 1,Captain Ryan and his TBDs,,Singles Team
+Lane 2,Ozzie Guillen,,Ghost Team
+Lane 3,Dolla Dolla Bowl Y'all,,Lickety Splitz
+Lane 4,The Dude,,Midwest Vacuum
+,,,
+8:10,,,
+Lane 1,Captain Ryan and his TBDs,,Ozzie Guillen
+Lane 2,The Dude,,Dolla Dolla Bowl Y'all
+Lane 3,Ghost Team,,Singles Team
+Lane 4,Midwest Vacuum,,Lickety Splitz
+,,,
+9:20,,,
+Lane 1,Slice & Dice,,Gutter & Sons
+Lane 2,Easy Pickup 2,,Glory Bowls
+Lane 3,Pin Chitters,,LIC My Balls
+Lane 4,Stranger Pins,,Michael BOWLton's Greatest Splits
+,,,
+10:30,,,
+Lane 1,Easy Pickup 2,,Michael BOWLton's Greatest Splits
+Lane 2,Slice & Dice,,Pin Chitters
+Lane 3,Glory Bowls,,Stranger Pins
+Lane 4,LIC My Balls,,Gutter & Sons`;
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// BOWLING GAME STATE & LOGIC
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const MAX_BOWLERS = 6;
+
+let bowlers = [];
+let leagueRoster = [];
+let scheduleData = { week: '', slots: [] };
+let yourTeam = '';
+let gameStarted = false;
+let lockedOrder = [];
+let activeBowlerIdx = 0;
+let scoringMode = 'hcpcalc';
+let currentWeek = 1;
+let seasonData = {};
+
+let bowlerIdCounter = 1;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// INTRO & UPLOAD FLOW
+// ─────────────────────────────────────────────────────────────────────────────
+
+// powerBtn is now a <label for="roster-file-input"> — no JS needed to open the file picker
+
+// Roster upload listener removed — data is now embedded in ROSTER_CSV constant above.
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HANDICAP SHEET UPLOAD
+// ─────────────────────────────────────────────────────────────────────────────
+
+document.getElementById('hcp-sheet-input').addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (evt) => {
+    const overrideCount = applyHandicapSheet(evt.target.result);
+    const nameEl   = document.getElementById('hcp-sheet-filename');
+    const statusEl = document.getElementById('hcp-sheet-status');
+    if (nameEl) nameEl.textContent = file.name;
+    if (statusEl) {
+      statusEl.textContent = overrideCount > 0
+        ? `${overrideCount} player handicap${overrideCount !== 1 ? 's' : ''} overridden`
+        : 'No matching players found';
+      statusEl.style.color = overrideCount > 0 ? 'var(--green)' : 'var(--red)';
+      statusEl.style.display = 'block';
+    }
+    // Sync any already-created bowler objects so live scorecards reflect new handicaps
+    bowlers.forEach(b => {
+      const p = leagueRoster.find(x => x.name.toLowerCase() === b.name.toLowerCase());
+      if (p) b.handicap = p.handicap;
+    });
+    // Re-render roster cards so +HCP numbers update in the left column
+    renderRoster('a');
+    renderRoster('b');
+    // Re-render everything that depends on handicaps
+    updateHandicapCard();
+    updateProjectionCard();
+    updateHcpCalc();
+    updateTeamScores();
+  };
+  reader.readAsText(file);
+});
+
+function applyHandicapSheet(csv) {
+  // Handles the league's multi-column layout:
+  // Teams are arranged in groups of 3 columns: Name | HCP | (blank) | Name | HCP | (blank) ...
+  // Team header rows have text in the name column but no integer in the HCP column — auto-skipped.
+  const lines = csv.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim().split('\n');
+  let count = 0;
+
+  lines.forEach(line => {
+    if (!line.trim()) return;
+    const parts = parseCSVLine(line);
+    // Step through every group of 3 columns: (0,1), (3,4), (6,7), (9,10) ...
+    for (let col = 0; col + 1 < parts.length; col += 3) {
+      const name = (parts[col] || '').trim();
+      const hcp  = parseInt((parts[col + 1] || '').trim(), 10);
+      // Skip blanks and team header rows (no valid integer in hcp column)
+      if (!name || isNaN(hcp)) continue;
+      // Match against leagueRoster by name (case-insensitive)
+      const player = leagueRoster.find(p => p.name.toLowerCase() === name.toLowerCase());
+      if (player) {
+        player.handicap = hcp;
+        count++;
+      }
+    }
+  });
+  return count;
+}
+
+function updateRosterStatus(filename) {
+  const nameEl = document.getElementById('roster-filename');
+  const countEl = document.getElementById('roster-player-count');
+  const teamEl = document.getElementById('roster-team-count');
+  if (nameEl) nameEl.textContent = filename || 'None loaded';
+  if (countEl) countEl.textContent = leagueRoster.length;
+  const teams = new Set(leagueRoster.map(p => p.team).filter(Boolean));
+  if (teamEl) teamEl.textContent = teams.size;
+}
+
+function populateTeamSelects() {
+  const teams = [...new Set(leagueRoster.map(p => p.team).filter(Boolean))];
+  ['team-a-select', 'team-b-select'].forEach(id => {
+    const sel = document.getElementById(id);
+    sel.innerHTML = '<option value="">— Select Team —</option>' +
+      teams.map(t => `<option value="${t}">${t}</option>`).join('');
+  });
+}
+
+// ─── PLAYER SELECTION STATE ──────────────────────────────────────────────────
+let selectedPlayersA = []; // names of selected players for team A (max 3)
+let selectedPlayersB = []; // names of selected players for team B (max 3)
+
+// Team select change listeners removed — matchup picker now sets teams via selectMatchupGame().
+
+function renderRoster(side) {
+  const teamName = document.getElementById(`team-${side}-select`).value;
+  const container = document.getElementById(`team-${side}-roster`);
+  const selected  = side === 'a' ? selectedPlayersA : selectedPlayersB;
+
+  if (!teamName) {
+    container.innerHTML = '<div class="roster-empty">Select a team to load players</div>';
+    updateSelectionDots(side);
+    return;
+  }
+
+  const players = leagueRoster.filter(p => p.team === teamName);
+  if (players.length === 0) {
+    container.innerHTML = '<div class="roster-empty">No players found for this team</div>';
+    updateSelectionDots(side);
+    return;
+  }
+
+  container.innerHTML = players.map(p => {
+    const safeName = p.name.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    const isSel = selected.includes(p.name);
+    return `<div class="roster-player ${isSel ? 'selected-' + side : ''}" onclick="togglePlayerSelect('${side}','${safeName}')">
+      <span class="rp-name">${p.name}</span>
+      <span class="rp-stats">
+        <span class="rp-avg">AVG&nbsp;${Math.round(p.avg)}</span>
+        <span class="rp-hcp">+${p.handicap}</span>
+      </span>
+    </div>`;
+  }).join('');
+
+  updateSelectionDots(side);
+}
+
+function updateSelectionDots(side) {
+  const selected = side === 'a' ? selectedPlayersA : selectedPlayersB;
+  const dotsEl   = document.getElementById(`team-${side}-dots`);
+  const countEl  = document.getElementById(`team-${side}-count-label`);
+  if (dotsEl) {
+    dotsEl.querySelectorAll('.selection-dot').forEach((dot, i) => {
+      dot.classList.toggle('filled', i < selected.length);
+    });
+  }
+  if (countEl) countEl.textContent = `${selected.length} / 3 selected`;
+}
+
+function togglePlayerSelect(side, playerName) {
+  const arr = side === 'a' ? selectedPlayersA : selectedPlayersB;
+  const idx = arr.indexOf(playerName);
+
+  if (idx > -1) {
+    arr.splice(idx, 1); // deselect
+  } else {
+    if (arr.length >= 3) return; // max 3
+    arr.push(playerName);
+  }
+
+  renderRoster(side);
+
+  if (scoringMode === 'hcpcalc') {
+    // In HCP CALC mode: don't add to scorecards, feed the calculator + edge card
+    updateHcpCalc();
+    updateHandicapCard();
+  } else {
+    // In FRAME / END GAME modes: rebuild bowler scorecards
+    bowlers = bowlers.filter(b => b.team !== side);
+    arr.forEach(name => {
+      const p = leagueRoster.find(x => x.name === name);
+      if (p) {
+        const b = createBowler(p.name.toUpperCase());
+        b.team = side;
+        b.handicap = p.handicap;
+        bowlers.push(b);
+      }
+    });
+    renderAll();
+    updateTeamScores();
+    updateHandicapCard();
+    updateProjectionCard();
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HANDICAP CALCULATOR
+// ─────────────────────────────────────────────────────────────────────────────
+function updateHcpCalc() {
+  const container = document.getElementById('hcp-calc-content');
+  if (!container) return;
+
+  const teamAName = document.getElementById('team-a-select').value;
+  const teamBName = document.getElementById('team-b-select').value;
+
+  if (selectedPlayersA.length === 0 && selectedPlayersB.length === 0) {
+    container.innerHTML = `<div style="text-align:center; color:var(--soft-black); font-size:0.8em; padding:1.5em 0; font-family:var(--font-body); font-weight:400;">Select players from the team rosters to calculate</div>`;
+    return;
+  }
+
+  function buildTeamBlock(playerNames, teamName, accentColor) {
+    if (playerNames.length === 0) return '';
+    const players = playerNames.map(n => leagueRoster.find(p => p.name === n)).filter(Boolean);
+    const totalAvg = players.reduce((s, p) => s + p.avg, 0);
+    const totalHcp = players.reduce((s, p) => s + p.handicap, 0);
+    const totalProj = totalAvg + totalHcp;
+
+    const rows = players.map(p => `
+      <div style="display:flex; align-items:center; justify-content:space-between; padding:0.4em 0.6em; border-radius:0.3em; background:var(--dark-black); margin-bottom:0.25em;">
+        <span style="font-size:0.85em; color:var(--white-smoke); font-weight:700; flex:1;">${p.name}</span>
+        <span style="font-size:0.78em; color:var(--smoke); margin-right:1em;">AVG&nbsp;<strong style="color:var(--white-smoke);">${Math.round(p.avg)}</strong></span>
+        <span style="font-size:0.78em; color:var(--yellow); font-weight:900;">+${p.handicap}</span>
+      </div>`).join('');
+
+    return `
+      <div style="margin-bottom:0.9em;">
+        <div style="font-size:0.78em; font-weight:900; letter-spacing:0.1em; color:${accentColor}; margin-bottom:0.5em; padding:0 0.2em;">${teamName ? teamName.toUpperCase() : (accentColor === 'var(--red)' ? 'TEAM A' : 'TEAM B')}</div>
+        ${rows}
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:0.45em 0.6em; border-radius:0.3em; background:rgba(0,0,0,0.3); border-top:1px solid var(--soft-black); margin-top:0.3em;">
+          <span style="font-size:0.75em; letter-spacing:0.08em; color:var(--smoke);">TOTAL</span>
+          <div style="display:flex; gap:1.2em; align-items:center;">
+            <span style="font-size:0.78em; color:var(--smoke);">RAW&nbsp;<strong style="color:var(--white-smoke);">${Math.round(totalAvg)}</strong></span>
+            <span style="font-size:0.78em; color:var(--yellow);">HCP&nbsp;<strong>+${totalHcp}</strong></span>
+            <span style="font-size:0.9em; font-weight:900; color:${accentColor};">${Math.round(totalProj)}</span>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  const blockA = buildTeamBlock(selectedPlayersA, teamAName, 'var(--red)');
+  const blockB = buildTeamBlock(selectedPlayersB, teamBName, 'var(--light-blue)');
+
+  // Edge calculation when both sides have players
+  let edgeHtml = '';
+  if (selectedPlayersA.length > 0 && selectedPlayersB.length > 0) {
+    const pA = selectedPlayersA.map(n => leagueRoster.find(p => p.name === n)).filter(Boolean);
+    const pB = selectedPlayersB.map(n => leagueRoster.find(p => p.name === n)).filter(Boolean);
+    const projA = pA.reduce((s,p) => s + p.avg + p.handicap, 0);
+    const projB = pB.reduce((s,p) => s + p.avg + p.handicap, 0);
+    const diff = Math.abs(projA - projB);
+    const leader = projA > projB ? (teamAName || 'TEAM A') : (teamBName || 'TEAM B');
+    const leaderColor = projA > projB ? 'var(--red)' : 'var(--light-blue)';
+    edgeHtml = `
+      <div style="text-align:center; padding:0.6em; border-radius:0.4em; background:rgba(0,0,0,0.25); border:1px solid var(--soft-black);">
+        <div style="font-size:0.7em; letter-spacing:0.1em; color:var(--smoke); margin-bottom:0.3em;">PROJECTED EDGE</div>
+        <div style="font-size:1.1em; font-weight:900; color:${leaderColor};">${leader.toUpperCase()} +${diff}</div>
+      </div>`;
+  }
+
+  container.innerHTML = `<div style="padding:0.2em 0;">${blockA}${blockB}${edgeHtml}</div>`;
+}
+
+function parseRosterCSV(csv) {
+  // Normalize line endings (handle Windows \r\n and old Mac \r)
+  const lines = csv.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim().split('\n');
+  if (lines.length < 2) return [];
+
+  // Scan up to first 10 rows to find the real header row
+  // (leaderboard CSVs often have metadata rows at the top)
+  let headerIdx = -1;
+  for (let i = 0; i < Math.min(lines.length, 10); i++) {
+    const lower = lines[i].toLowerCase();
+    const hasNameOrPlayer = lower.includes('player') || lower.includes('name');
+    const hasTeam = lower.includes('team');
+    const hasAvg  = lower.includes('avg') || lower.includes('average');
+    if (hasNameOrPlayer && hasTeam && hasAvg) { headerIdx = i; break; }
+  }
+  if (headerIdx === -1) return [];
+
+  // Strip all non-alpha chars for flexible matching (handles "Avg.", "# Played", etc.)
+  const header = lines[headerIdx].split(',').map(h => h.trim().toLowerCase().replace(/[^a-z]/g, ''));
+  const nameIdx = header.findIndex(h => h === 'player' || h === 'name' || h.includes('player') || h.includes('name'));
+  const teamIdx = header.findIndex(h => h.includes('team'));
+  const avgIdx  = header.findIndex(h => h.startsWith('avg') || h === 'average');
+  if (nameIdx === -1 || avgIdx === -1) return [];
+
+  return lines.slice(headerIdx + 1).filter(l => l.trim()).map(line => {
+    const parts = parseCSVLine(line);
+    const name  = (parts[nameIdx] || '').trim();
+    const team  = teamIdx >= 0 ? (parts[teamIdx] || '').trim() : '';
+    const avg   = avgIdx >= 0 ? (parseFloat(parts[avgIdx]) || 0) : 0;
+    // Handicap: 70% of (200 − avg), floored, minimum 0
+    const handicap = Math.max(0, Math.floor((200 - avg) * 0.70));
+    return { name, team, avg, handicap };
+  }).filter(p =>
+    p.name &&        // must have a name
+    p.avg > 0 &&     // must have actually bowled (excludes alternates with 0 avg)
+    !/ghost\s*team/i.test(p.name)  // exclude ghost team placeholders
+  );
+}
+
+// Handles quoted CSV fields with embedded commas
+function parseCSVLine(line) {
+  const result = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      inQuotes = !inQuotes;
+    } else if (ch === ',' && !inQuotes) {
+      result.push(current.trim());
+      current = '';
+    } else {
+      current += ch;
+    }
+  }
+  result.push(current.trim());
+  return result;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SCHEDULE PARSING & MATCHUP PICKER
+// ─────────────────────────────────────────────────────────────────────────────
+
+function parseScheduleCSV(csv) {
+  const lines = csv.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim().split('\n');
+  const data = { week: '', slots: [] };
+  let currentSlot = null;
+  for (const line of lines) {
+    if (!line.trim()) continue;
+    const parts = line.split(',').map(p => p.trim());
+    if (parts[0].toLowerCase().startsWith('week')) {
+      data.week = parts[0];
+    } else if (/^\d{1,2}:\d{2}$/.test(parts[0])) {
+      currentSlot = { time: parts[0], lanes: [] };
+      data.slots.push(currentSlot);
+    } else if (parts[0].toLowerCase().startsWith('lane') && currentSlot) {
+      currentSlot.lanes.push({ lane: parts[0], home: parts[1], away: parts[3] });
+    }
+  }
+  return data;
+}
+
+function getTeamGames(teamName) {
+  const games = [];
+  scheduleData.slots.forEach(slot => {
+    slot.lanes.forEach(lane => {
+      if (lane.home === teamName || lane.away === teamName) {
+        const opponent = lane.home === teamName ? lane.away : lane.home;
+        games.push({ time: slot.time, lane: lane.lane, opponent });
+      }
+    });
+  });
+  return games;
+}
+
+function populateMatchupPicker() {
+  // Set week label on intro screen
+  const weekEl = document.getElementById('intro-week-label');
+  if (weekEl) weekEl.textContent = scheduleData.week.toUpperCase();
+
+  // Get unique teams from schedule, sorted
+  const teams = [...new Set(
+    scheduleData.slots.flatMap(s => s.lanes.flatMap(l => [l.home, l.away]))
+  )].filter(Boolean).sort();
+
+  const sel = document.getElementById('your-team-select');
+  if (sel) {
+    sel.innerHTML = '<option value="">— SELECT YOUR TEAM —</option>' +
+      teams.map(t => `<option value="${t}">${t}</option>`).join('');
+  }
+}
+
+function onYourTeamChange(teamName) {
+  yourTeam = teamName;
+  const games = teamName ? getTeamGames(teamName) : [];
+  const btnsEl = document.getElementById('game-buttons');
+  const matchupEl = document.getElementById('current-matchup');
+
+  if (!teamName || games.length === 0) {
+    if (btnsEl) btnsEl.innerHTML = '';
+    if (matchupEl) matchupEl.innerHTML = '';
+    return;
+  }
+
+  if (btnsEl) {
+    btnsEl.innerHTML = games.map((g, i) => `
+      <button class="game-select-btn" id="game-btn-${i}" onclick="selectMatchupGame(${i})"
+        style="display:flex; justify-content:space-between; align-items:center;
+               background:var(--dark-black); border:1px solid var(--soft-black);
+               color:var(--white-smoke); border-radius:0.4em; padding:0.5em 0.75em;
+               font-family:'Barlow Condensed',sans-serif; font-weight:700;
+               font-size:0.88em; letter-spacing:0.05em; cursor:pointer; width:100%;
+               transition:border-color 0.15s, background 0.15s;">
+        <span style="color:var(--yellow);">GAME ${i + 1}</span>
+        <span style="color:var(--smoke); font-size:0.85em;">${g.time}</span>
+        <span style="color:var(--light-blue);">vs ${g.opponent}</span>
+      </button>`).join('');
+  }
+  if (matchupEl) matchupEl.innerHTML = '';
+}
+
+function selectMatchupGame(gameIdx) {
+  if (!yourTeam) return;
+  const games = getTeamGames(yourTeam);
+  if (gameIdx >= games.length) return;
+  const game = games[gameIdx];
+
+  // Highlight selected game button
+  document.querySelectorAll('.game-select-btn').forEach((btn, i) => {
+    btn.style.borderColor = i === gameIdx ? 'var(--yellow)' : 'var(--soft-black)';
+    btn.style.background  = i === gameIdx ? 'rgba(236,178,54,0.12)' : 'var(--dark-black)';
+  });
+
+  // Set hidden selects (used by renderRoster)
+  const selA = document.getElementById('team-a-select');
+  const selB = document.getElementById('team-b-select');
+  if (selA) { selA.innerHTML = `<option value="${yourTeam}">${yourTeam}</option>`; selA.value = yourTeam; }
+  if (selB) { selB.innerHTML = `<option value="${game.opponent}">${game.opponent}</option>`; selB.value = game.opponent; }
+
+  // Update roster header labels
+  const lblA = document.getElementById('team-a-name-label');
+  const lblB = document.getElementById('team-b-name-label');
+  if (lblA) lblA.textContent = yourTeam.toUpperCase();
+  if (lblB) lblB.textContent = game.opponent.toUpperCase();
+
+  // Clear previous player selections
+  selectedPlayersA.length = 0;
+  selectedPlayersB.length = 0;
+
+  renderRoster('a');
+  renderRoster('b');
+  updateHandicapCard();
+  updateProjectionCard();
+  updateHcpCalc();
+
+  // Show current matchup
+  const matchupEl = document.getElementById('current-matchup');
+  if (matchupEl) {
+    matchupEl.innerHTML = `<span style="color:var(--red);">${yourTeam}</span>&nbsp;<span style="color:var(--smoke);">vs</span>&nbsp;<span style="color:var(--light-blue);">${game.opponent}</span>`;
+  }
+}
+
+function initDashboard() {
+  // Parse all embedded data
+  leagueRoster = parseRosterCSV(ROSTER_CSV);
+  applyHandicapSheet(HANDICAP_CSV);
+  scheduleData = parseScheduleCSV(SCHEDULE_CSV);
+
+  // Populate matchup picker dropdowns
+  populateMatchupPicker();
+  populateTeamSelects(); // keep existing team selects populated for compatibility
+
+  // Hide intro, show dashboard
+  document.getElementById('intro').style.display = 'none';
+  const dash = document.getElementById('dashboard');
+  dash.style.display = 'grid';
+  dash.style.opacity = '1';
+
+  // Default to HCP CALC mode
+  setScoringMode('hcpcalc');
+  initGame();
+}
+
+function initGame() {
+  buildPins([0,1,2,3,4,5,6,7,8,9]);
+  renderAll();
+  updateTeamScores();
+  renderSeasonTracker();
+  updateHandicapCard();
+  updateProjectionCard();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BOWLER & FRAME LOGIC
+// ─────────────────────────────────────────────────────────────────────────────
+
+function createBowler(name) {
+  const id = bowlerIdCounter++;
+  return {
+    id,
+    name,
+    team: 'none',
+    handicap: 0,
+    frames: Array.from({ length: 10 }, () => ({ rolls: [] })),
+    currentFrame: 0,
+    consecutiveStrikes: 0,
+    active: false,
+    endGameScore: null
+  };
+}
+
+function recalcRunning(frames) {
+  const allRolls = [];
+  frames.forEach(f => allRolls.push(...f.rolls));
+  const raw = [];
+  let rollIdx = 0;
+
+  for (let i = 0; i < 10; i++) {
+    const isTenth = (i === 9);
+    if (!isTenth) {
+      if (allRolls[rollIdx] === 10) {
+        const b1 = allRolls[rollIdx + 1] ?? null;
+        if (b1 === null) { raw.push(null); rollIdx++; continue; }
+        raw.push(10 + b1);
+        rollIdx++;
+      } else {
+        if (rollIdx + 1 >= allRolls.length) { raw.push(null); rollIdx++; continue; }
+        const sum = allRolls[rollIdx] + allRolls[rollIdx + 1];
+        if (sum === 10) {
+          const b2 = allRolls[rollIdx + 2] ?? null;
+          if (b2 === null) { raw.push(null); rollIdx += 2; continue; }
+          raw.push(10 + b2);
+        } else {
+          raw.push(sum);
+        }
+        rollIdx += 2;
+      }
+    } else {
+      const tenthFrame = frames[9].rolls;
+      let tenthScore = 0;
+      tenthFrame.forEach(r => tenthScore += r);
+      raw.push(tenthScore);
+    }
+  }
+
+  const running = [];
+  let sum = 0;
+  for (let i = 0; i < 10; i++) {
+    if (raw[i] === null) { running.push(null); }
+    else { sum += raw[i]; running.push(sum); }
+  }
+  return running;
+}
+
+function getBowlerTotal(b) {
+  if (scoringMode === 'endgame') {
+    return b.endGameScore !== null ? parseInt(b.endGameScore) : 0;
+  }
+  const scores = recalcRunning(b.frames);
+  for (let i = 9; i >= 0; i--) { if (scores[i] !== null) return scores[i]; }
+  return 0;
+}
+
+function getValidRolls(b) {
+  const cf = b.currentFrame;
+  if (cf > 9) return [];
+  const rolls = b.frames[cf].rolls;
+  const options = [];
+
+  if (cf < 9) {
+    if (rolls.length === 0) {
+      for (let i = 0; i <= 10; i++) options.push(i);
+    } else {
+      for (let i = 0; i <= 10 - rolls[0]; i++) options.push(i);
+    }
+  } else {
+    if (rolls.length === 0) {
+      for (let i = 0; i <= 10; i++) options.push(i);
+    } else if (rolls.length === 1) {
+      if (rolls[0] === 10) { for (let i = 0; i <= 10; i++) options.push(i); }
+      else { for (let i = 0; i <= 10 - rolls[0]; i++) options.push(i); }
+    } else if (rolls.length === 2) {
+      if (rolls[0] === 10 && rolls[1] === 10) {
+        for (let i = 0; i <= 10; i++) options.push(i);
+      } else if (rolls[0] === 10 && rolls[1] < 10) {
+        for (let i = 0; i <= 10 - rolls[1]; i++) options.push(i);
+      } else if (rolls[0] + rolls[1] === 10) {
+        for (let i = 0; i <= 10; i++) options.push(i);
+      }
+    }
+  }
+  return options;
+}
+
+function isFrameComplete(b, frameIdx) {
+  const f = b.frames[frameIdx];
+  if (frameIdx < 9) {
+    return f.rolls.length === 2 || f.rolls[0] === 10;
+  } else {
+    if (f.rolls.length < 2) return false;
+    if (f.rolls[0] === 10 || f.rolls[0] + f.rolls[1] === 10) return f.rolls.length === 3;
+    return f.rolls.length === 2;
+  }
+}
+
+function recordRoll(bowlerId, pins) {
+  const b = bowlers.find(x => x.id === bowlerId);
+  if (!b || b.currentFrame > 9) return;
+  const cf = b.currentFrame;
+  b.frames[cf].rolls.push(pins);
+
+  if (cf < 9 && pins === 10) { b.consecutiveStrikes++; }
+  else if (cf < 9) { b.consecutiveStrikes = 0; }
+
+  const frameJustCompleted = isFrameComplete(b, cf);
+  if (frameJustCompleted) {
+    if (cf < 9) b.currentFrame++;
+    else b.currentFrame = 10;
+  }
+
+  animateBowl(b, pins, cf);
+  renderBowler(b);
+  updateTeamScores();
+
+  if (gameStarted && scoringMode === 'frame' && frameJustCompleted) {
+    const activeId = lockedOrder[activeBowlerIdx];
+    if (b.id === activeId) {
+      setTimeout(advanceActiveBowler, 2400);
+    }
+  }
+}
+
+function animateBowl(bowler, pins, frameIdx) {
+  const ball  = document.getElementById('bowling-ball');
+  const fig = document.getElementById('bowler-figure');
+
+  if (fig) {
+    fig.classList.remove('throwing');
+    void fig.offsetWidth;
+    fig.classList.add('throwing');
+    setTimeout(() => fig.classList.remove('throwing'), 600);
+  }
+
+  ball.className = 'ball';
+  void ball.offsetWidth;
+  ball.className = 'ball rolling';
+
+  let standing = [0,1,2,3,4,5,6,7,8,9];
+  const rollsInFrame = bowler.frames[frameIdx].rolls;
+  if (rollsInFrame.length > 1) {
+    const knocked = rollsInFrame[0];
+    standing = standing.slice(knocked);
+  }
+  buildPins(standing);
+
+  setTimeout(() => {
+    if (pins >= standing.length) {
+      buildPins([]);
+    } else {
+      buildPins(standing.slice(pins));
+    }
+    triggerImpact(pins === 0 ? 'gutter' : pins === 10 && standing.length === 10 ? 'strike' : 'hit');
+  }, 1260);
+}
+
+function triggerImpact(type) {
+  const laneTrack = document.getElementById('lane-track');
+  const pinDisp   = document.getElementById('pin-display');
+  const flashEl = document.getElementById('strike-flash');
+  if (!laneTrack || !pinDisp) return;
+
+  const trackRect = laneTrack.getBoundingClientRect();
+  const pinRect   = pinDisp.getBoundingClientRect();
+  const cx = pinRect.left - trackRect.left + pinRect.width  * 0.5;
+  const cy = pinRect.top  - trackRect.top  + pinRect.height * 0.5;
+
+  if (type === 'gutter') {
+    laneTrack.classList.add('shaking');
+    setTimeout(() => laneTrack.classList.remove('shaking'), 600);
+    return;
+  }
+
+  if (type === 'strike') {
+    if (flashEl) {
+      flashEl.className = 'strike-flash active';
+      setTimeout(() => { flashEl.className = 'strike-flash'; }, 1100);
+    }
+    spawnBurst(laneTrack, cx, cy, 'strike', 10, 0);
+    spawnBurst(laneTrack, cx, cy, 'strike', 7,  80);
+    spawnBurst(laneTrack, cx, cy, 'strike', 5,  160);
+  } else {
+    spawnBurst(laneTrack, cx, cy, 'hit', 3, 0);
+  }
+}
+
+function spawnBurst(container, cx, cy, type, count, delayMs) {
+  setTimeout(() => {
+    for (let i = 0; i < count; i++) {
+      const p       = document.createElement('div');
+      const angle   = Math.random() * 360;
+      const maxDist = type === 'strike' ? 28 + Math.random() * 20 : 8 + Math.random() * 8;
+      const dx  = Math.cos(angle * Math.PI / 180) * maxDist;
+      const dy  = Math.sin(angle * Math.PI / 180) * maxDist;
+      const sz  = type === 'strike' ? 4 + Math.random() * 5 : 2 + Math.random() * 2;
+      const dur = 0.38 + Math.random() * 0.32;
+
+      p.className = `impact-particle impact-${type}`;
+      p.style.cssText = `left:${cx}px;top:${cy}px;width:${sz}px;height:${sz}px;` +
+        `--dx:${dx}px;--dy:${dy}px;--dur:${dur}s;animation-duration:${dur}s;`;
+      container.appendChild(p);
+      setTimeout(() => p.remove(), dur * 1000 + 100);
+    }
+  }, delayMs);
+}
+
+const PIN_COLS = [[0],[1,2],[3,4,5],[6,7,8,9]];
+
+function buildPins(standing) {
+  const container = document.getElementById('pin-display');
+  container.innerHTML = '';
+  PIN_COLS.forEach(col => {
+    const colDiv = document.createElement('div');
+    colDiv.className = 'pin-col';
+    col.forEach(idx => {
+      const pin = document.createElement('div');
+      pin.className = 'pin' + (standing.includes(idx) ? '' : ' down');
+      colDiv.appendChild(pin);
+    });
+    container.appendChild(colDiv);
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RENDER BOWLER CARDS
+// ─────────────────────────────────────────────────────────────────────────────
+
+function buildBowlerCard(b) {
+  const teamClass = b.team === 'a' ? 'team-a-card' : b.team === 'b' ? 'team-b-card' : '';
+  const activeClass = b.active ? 'active-card' : '';
+  const scores = recalcRunning(b.frames);
+
+  let scoreRows = '';
+  for (let f = 0; f < 10; f++) {
+    const frame = b.frames[f];
+    const score = scores[f];
+    const rolls = frame.rolls;
+    const isCurrent = (f === b.currentFrame && b.currentFrame <= 9);
+
+    let rollsHtml = '';
+    if (f < 9) {
+      if (rolls[0] === 10) {
+        rollsHtml += `<div class="roll-badge roll-X" onclick="undoRoll(${b.id},${f},0)">X</div>`;
+      } else if (rolls[0] !== undefined) {
+        rollsHtml += `<div class="roll-badge ${rolls[0] === 0 ? 'roll-gutter' : 'roll-num'}" onclick="undoRoll(${b.id},${f},0)">${rolls[0] === 0 ? 'G' : rolls[0]}</div>`;
+        if (rolls[1] !== undefined) {
+          if (rolls[0] + rolls[1] === 10) {
+            rollsHtml += `<div class="roll-badge roll-spare" onclick="undoRoll(${b.id},${f},1)">/</div>`;
+          } else {
+            rollsHtml += `<div class="roll-badge ${rolls[1] === 0 ? 'roll-gutter' : 'roll-num'}" onclick="undoRoll(${b.id},${f},1)">${rolls[1] === 0 ? 'G' : rolls[1]}</div>`;
+          }
+        }
+      }
+    } else {
+      rolls.forEach((r, i) => {
+        let badge = '';
+        if (r === 10) {
+          badge = `<div class="roll-badge roll-X" onclick="undoRoll(${b.id},9,${i})">X</div>`;
+        } else if (i > 0 && rolls[i-1] !== 10 && rolls[i-1] + r === 10) {
+          badge = `<div class="roll-badge roll-spare" onclick="undoRoll(${b.id},9,${i})">/</div>`;
+        } else {
+          badge = `<div class="roll-badge ${r === 0 ? 'roll-gutter' : 'roll-num'}" onclick="undoRoll(${b.id},9,${i})">${r === 0 ? 'G' : r}</div>`;
+        }
+        rollsHtml += badge;
+      });
+    }
+
+    const cellClass = ['frame-cell', score !== null ? 'has-score' : '', isCurrent ? 'current-frame' : ''].filter(Boolean).join(' ');
+    scoreRows += `<td class="${cellClass}"><div class="cell-rolls">${rollsHtml}</div><div class="frame-score">${score !== null ? score : ''}</div></td>`;
+  }
+
+  const total = getBowlerTotal(b);
+  const hcpTotal = total + parseInt(b.handicap || 0);
+
+  const isDone = b.currentFrame > 9;
+  const validRolls = getValidRolls(b);
+  const cf = b.currentFrame;
+  const fr = !isDone ? b.frames[cf].rolls : [];
+
+  let btnHtml = '';
+  if (!isDone) {
+    btnHtml += `<span class="frame-indicator">Frame <strong>${cf + 1}</strong></span>`;
+    validRolls.forEach(pins => {
+      let cls = 'throw-btn';
+      let lbl = String(pins);
+      if (pins === 10) {
+        cls += ' strike'; lbl = 'X';
+      } else if (pins === 0) {
+        cls += ' gutter-btn'; lbl = 'G';
+      } else {
+        let isSpare = false;
+        if (cf < 9 && fr.length === 1) {
+          isSpare = (pins + fr[0] === 10);
+        } else if (cf === 9) {
+          if (fr.length === 1 && fr[0] < 10) {
+            isSpare = (pins + fr[0] === 10);
+          } else if (fr.length === 2 && fr[0] === 10 && fr[1] < 10) {
+            isSpare = (pins + fr[1] === 10);
+          }
+        }
+        if (isSpare) { cls += ' spare-btn'; lbl = '/'; }
+      }
+      btnHtml += `<button class="${cls}" onclick="recordRoll(${b.id},${pins})">${lbl}</button>`;
+    });
+    btnHtml += `<button class="clear-frame-btn" onclick="clearCurrentFrame(${b.id})">Frame</button>`;
+  } else {
+    btnHtml = `<span class="complete-status">Complete</span>`;
+  }
+
+  const nameField = leagueRoster.length > 0
+    ? `<select class="roster-picker" onchange="applyRosterPlayer(${b.id},this.value)">
+        <option value="">Select Player</option>
+        ${leagueRoster.map(p => `<option value="${p.name}" ${b.name === p.name ? 'selected' : ''}>${p.name}</option>`).join('')}
+       </select>`
+    : `<input class="bowler-name-input" value="${b.name}" maxlength="16" onchange="renameBowler(${b.id},this.value)" />`;
+
+  return `<div class="bowler-card ${teamClass} ${activeClass}" id="bowler-${b.id}">
+    <div class="card-header">
+      ${nameField}
+      <div class="card-controls">
+        <select class="team-select" onchange="assignTeam(${b.id},this.value)">
+          <option value="none">None</option>
+          <option value="a" ${b.team === 'a' ? 'selected' : ''}>Team A</option>
+          <option value="b" ${b.team === 'b' ? 'selected' : ''}>Team B</option>
+        </select>
+        <span class="hcp-label">Hcp</span>
+        <input class="hcp-input" type="number" value="${b.handicap}" min="0" max="300" onchange="setHandicap(${b.id},+this.value)" />
+        ${!gameStarted ? `<button class="active-toggle ${b.active ? 'on' : ''}" onclick="toggleActive(${b.id})">Up Now</button>` : ''}
+        <button class="remove-btn" onclick="removeBowler(${b.id})">X</button>
+      </div>
+    </div>
+    ${scoringMode === 'endgame' ? `
+    <div class="endgame-body">
+      <div class="endgame-score-wrap">
+        <span class="endgame-label">Score</span>
+        <input type="number" class="endgame-score-input" value="${b.endGameScore !== null ? b.endGameScore : ''}" min="0" max="300" oninput="setEndGameScore(${b.id}, this.value)" />
+      </div>
+      <div class="endgame-hcp-wrap">
+        <span class="endgame-label">+ Hcp</span>
+        <span class="endgame-hcp-val" id="eg-hcp-${b.id}">${b.endGameScore !== null ? parseInt(b.endGameScore) + parseInt(b.handicap || 0) : '—'}</span>
+      </div>
+    </div>` : `
+    <div class="score-sheet">
+      <table class="score-table">
+        <thead><tr>
+          ${Array.from({length:10},(_,i)=>`<th>${i+1}</th>`).join('')}
+          <th>Tot</th>
+          <th>Hcp</th>
+        </tr></thead>
+        <tbody><tr>
+          ${scoreRows}
+          <td class="total-cell">${total || ''}</td>
+          <td class="hcp-total-cell">${total ? hcpTotal : ''}</td>
+        </tr></tbody>
+      </table>
+    </div>
+    <div class="input-panel">
+      <div class="input-row">${btnHtml}</div>
+    </div>`}
+  </div>`;
+}
+
+function renderBowler(b) {
+  const existing = document.getElementById(`bowler-${b.id}`);
+  if (existing) {
+    const tmp = document.createElement('div');
+    tmp.innerHTML = buildBowlerCard(b);
+    existing.replaceWith(tmp.firstChild);
+  }
+}
+
+function renderAll() {
+  const container = document.getElementById('bowlers-grid');
+  container.innerHTML = bowlers.map(b => buildBowlerCard(b)).join('');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BOWLER MANAGEMENT
+// ─────────────────────────────────────────────────────────────────────────────
+
+function addBowler() {
+  if (bowlers.length >= MAX_BOWLERS) { alert('Max 6 bowlers'); return; }
+  const b = createBowler(`BOWLER ${bowlers.length + 1}`);
+  bowlers.push(b);
+  renderAll();
+  updateTeamScores();
+}
+
+function removeBowler(id) {
+  bowlers = bowlers.filter(b => b.id !== id);
+  renderAll();
+  updateTeamScores();
+}
+
+function renameBowler(id, name) {
+  const b = bowlers.find(x => x.id === id);
+  if (b) { b.name = name.toUpperCase(); renderBowler(b); updateTeamScores(); }
+}
+
+function applyRosterPlayer(id, name) {
+  const b = bowlers.find(x => x.id === id);
+  if (!b || !name) return;
+  const player = leagueRoster.find(p => p.name === name);
+  if (player) {
+    b.name = player.name;
+    b.handicap = player.handicap;
+    renderBowler(b);
+    updateTeamScores();
+  }
+}
+
+function assignTeam(id, team) {
+  const b = bowlers.find(x => x.id === id);
+  if (b) { b.team = team; renderBowler(b); updateTeamScores(); }
+}
+
+function setHandicap(id, hcp) {
+  const b = bowlers.find(x => x.id === id);
+  if (b) { b.handicap = hcp; renderBowler(b); updateTeamScores(); }
+}
+
+function toggleActive(id) {
+  bowlers.forEach(b => { b.active = (b.id === id) ? !b.active : false; });
+  bowlers.forEach(b => renderBowler(b));
+}
+
+function clearCurrentFrame(id) {
+  const b = bowlers.find(x => x.id === id);
+  if (!b || b.currentFrame > 9) return;
+  b.frames[b.currentFrame].rolls = [];
+  b.consecutiveStrikes = Math.max(0, b.consecutiveStrikes - 1);
+  renderBowler(b);
+  updateTeamScores();
+}
+
+function undoRoll(id, frameIdx, rollIdx) {
+  const b = bowlers.find(x => x.id === id);
+  if (!b) return;
+  b.frames[frameIdx].rolls.splice(rollIdx, 1);
+  if (frameIdx <= b.currentFrame && !isFrameComplete(b, frameIdx)) {
+    b.currentFrame = frameIdx;
+  }
+  let streak = 0;
+  for (let f = 0; f < 10; f++) {
+    if (b.frames[f].rolls[0] === 10 && f < 9) streak++;
+    else streak = 0;
+  }
+  b.consecutiveStrikes = streak;
+  renderBowler(b);
+  updateTeamScores();
+}
+
+function resetGame() {
+  if (!confirm('Reset all scores?')) return;
+  gameStarted = false;
+  lockedOrder = [];
+  activeBowlerIdx = 0;
+  const lockBtn = document.getElementById('lock-in-btn-actual');
+  if (lockBtn) { lockBtn.textContent = 'LOCK IN ORDER'; lockBtn.classList.remove('locked'); }
+  bowlers.forEach(b => {
+    b.frames = Array.from({ length: 10 }, () => ({ rolls: [] }));
+    b.currentFrame = 0;
+    b.consecutiveStrikes = 0;
+    b.endGameScore = null;
+    b.active = false;
+  });
+  bowlers.forEach(b => renderBowler(b));
+  updateTeamScores();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SCORING MODE & END GAME
+// ─────────────────────────────────────────────────────────────────────────────
+
+function setScoringMode(mode) {
+  if (mode !== 'frame' && gameStarted) {
+    gameStarted = false;
+    lockedOrder = [];
+    activeBowlerIdx = 0;
+    bowlers.forEach(b => { b.active = false; });
+  }
+  scoringMode = mode;
+
+  // Mode buttons — yellow for frame/endgame, purple for hcpcalc
+  const isCalc = mode === 'hcpcalc';
+  document.getElementById('mode-btn-frame').classList.toggle('active', mode === 'frame');
+  document.getElementById('mode-btn-endgame').classList.toggle('active', mode === 'endgame');
+  document.getElementById('mode-btn-hcpcalc').classList.remove('active', 'active-hcpcalc');
+  if (isCalc) document.getElementById('mode-btn-hcpcalc').classList.add('active-hcpcalc');
+
+  // Lane animation removed — no-op kept for safety
+
+  // Show/hide calculator vs scorecard panels
+  const calcCard  = document.getElementById('hcp-calc-card');
+  const projCard  = document.getElementById('proj-outcome-card');
+  const scoreCard = document.querySelector('#bowlers-grid')?.closest('.card');
+  const liveScore = document.querySelector('#team-a-score')?.closest('.card');
+  if (calcCard)  calcCard.style.display  = isCalc ? '' : 'none';
+  if (projCard)  projCard.style.display  = isCalc ? 'none' : '';
+  if (scoreCard) scoreCard.style.display = isCalc ? 'none' : '';
+  if (liveScore) liveScore.style.display = isCalc ? 'none' : '';
+
+  // When entering HCP CALC mode, clear bowlers; re-render roster with existing selections
+  if (isCalc) {
+    bowlers = [];
+    renderRoster('a');
+    renderRoster('b');
+    updateHcpCalc();
+  } else {
+    // Re-add selected players as bowlers when leaving calc mode
+    bowlers = [];
+    [...selectedPlayersA].forEach(name => {
+      const p = leagueRoster.find(x => x.name === name);
+      if (p) { const b = createBowler(p.name.toUpperCase()); b.team = 'a'; b.handicap = p.handicap; bowlers.push(b); }
+    });
+    [...selectedPlayersB].forEach(name => {
+      const p = leagueRoster.find(x => x.name === name);
+      if (p) { const b = createBowler(p.name.toUpperCase()); b.team = 'b'; b.handicap = p.handicap; bowlers.push(b); }
+    });
+    renderAll();
+    updateTeamScores();
+    updateProjectionCard();
+  }
+}
+
+function setEndGameScore(id, val) {
+  const b = bowlers.find(x => x.id === id);
+  if (!b) return;
+  b.endGameScore = (val === '' || isNaN(val)) ? null : Math.max(0, Math.min(300, parseInt(val)));
+  updateTeamScores();
+  const hcpEl = document.getElementById(`eg-hcp-${id}`);
+  if (hcpEl) {
+    hcpEl.textContent = b.endGameScore !== null ? parseInt(b.endGameScore) + parseInt(b.handicap || 0) : '—';
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// WEEK & SEASON
+// ─────────────────────────────────────────────────────────────────────────────
+
+function setWeek(val) {
+  currentWeek = Math.max(1, Math.round(val) || 1);
+  document.getElementById('current-week-display').value = currentWeek;
+}
+
+function changeWeek(delta) {
+  setWeek(currentWeek + delta);
+}
+
+function saveGameToSeason() {
+  const teamA = bowlers.filter(b => b.team === 'a');
+  if (teamA.length === 0) { alert('No Team A bowlers'); return; }
+
+  const completed = scoringMode === 'endgame'
+    ? teamA.filter(b => b.endGameScore !== null)
+    : teamA.filter(b => b.currentFrame > 9);
+
+  if (completed.length === 0) { alert('No completed games'); return; }
+
+  completed.forEach(b => {
+    const score = getBowlerTotal(b);
+    if (!seasonData[b.name]) seasonData[b.name] = [];
+    const existing = seasonData[b.name].findIndex(g => g.week === currentWeek);
+    if (existing >= 0) {
+      seasonData[b.name][existing].score = score;
+    } else {
+      seasonData[b.name].push({ week: currentWeek, score });
+    }
+    seasonData[b.name].sort((a, b) => a.week - b.week);
+  });
+
+  renderSeasonTracker();
+  alert(`Week ${currentWeek} saved`);
+}
+
+function renderSeasonTracker() {
+  const container = document.getElementById('season-body');
+  const allNames = Object.keys(seasonData);
+
+  if (allNames.length === 0) {
+    container.innerHTML = '<div class="season-empty">No games saved</div>';
+    return;
+  }
+
+  const allWeeks = [...new Set(
+    Object.values(seasonData).flatMap(games => games.map(g => g.week))
+  )].sort((a, b) => a - b);
+
+  let thead = `<tr><th>Name</th>` + allWeeks.map(w => `<th>Wk${w}</th>`).join('') + `<th>Avg</th></tr>`;
+
+  let tbody = allNames.map(name => {
+    const games = seasonData[name] || [];
+    const scoreMap = Object.fromEntries(games.map(g => [g.week, g.score]));
+    const scores = games.map(g => g.score);
+    const avg = scores.length ? Math.round(scores.reduce((a,b)=>a+b,0) / scores.length) : null;
+
+    const weekCells = allWeeks.map(w =>
+      scoreMap[w] !== undefined ? `<td>${scoreMap[w]}</td>` : `<td>—</td>`
+    ).join('');
+
+    return `<tr><td>${name}</td>${weekCells}<td>${avg || '—'}</td></tr>`;
+  }).join('');
+
+  container.innerHTML = `<table class="season-table"><thead>${thead}</thead><tbody>${tbody}</tbody></table>`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TEAM SCORES & HANDICAP
+// ─────────────────────────────────────────────────────────────────────────────
+
+function updateTeamScores() {
+  const teamA = bowlers.filter(b => b.team === 'a');
+  const teamB = bowlers.filter(b => b.team === 'b');
+
+  const scoreA = teamA.reduce((s, b) => s + getBowlerTotal(b), 0);
+  const scoreB = teamB.reduce((s, b) => s + getBowlerTotal(b), 0);
+  const hcpA = teamA.reduce((s, b) => s + (b.handicap || 0), 0);
+  const hcpB = teamB.reduce((s, b) => s + (b.handicap || 0), 0);
+
+  document.getElementById('team-a-score').textContent = scoreA;
+  document.getElementById('team-b-score').textContent = scoreB;
+  document.getElementById('team-a-hcp-score').textContent = scoreA + hcpA;
+  document.getElementById('team-b-hcp-score').textContent = scoreB + hcpB;
+}
+
+function updateHandicapCard() {
+  const teamA = document.getElementById('team-a-select').value;
+  const teamB = document.getElementById('team-b-select').value;
+
+  const numEl      = document.getElementById('hcp-diff-number');
+  const nameEl     = document.getElementById('hcp-edge-team-name');
+  const pinsLblEl  = document.getElementById('hcp-edge-pins-label');
+  const breakdownEl = document.getElementById('hcp-player-breakdown');
+
+  // Use only the selected players, not the full team roster
+  const playersA = selectedPlayersA.map(n => leagueRoster.find(p => p.name === n)).filter(Boolean);
+  const playersB = selectedPlayersB.map(n => leagueRoster.find(p => p.name === n)).filter(Boolean);
+
+  if (playersA.length === 0 && playersB.length === 0) {
+    if (numEl)  numEl.textContent  = '—';
+    if (nameEl) nameEl.textContent = '—';
+    if (pinsLblEl) pinsLblEl.textContent = '';
+    if (breakdownEl) breakdownEl.innerHTML = '';
+    return;
+  }
+  const hcpA = playersA.reduce((s,p) => s + (p.handicap||0), 0);
+  const hcpB = playersB.reduce((s,p) => s + (p.handicap||0), 0);
+  const diff    = Math.abs(hcpA - hcpB);
+  const favored = hcpA >= hcpB ? (teamA || 'TEAM A') : (teamB || 'TEAM B');
+  const favoredColor = hcpA >= hcpB ? 'var(--red)' : 'var(--light-blue)';
+
+  if (numEl)  { numEl.textContent = diff > 0 ? `+${diff}` : '0'; }
+  if (nameEl) {
+    nameEl.textContent = favored.toUpperCase();
+    nameEl.style.color = favoredColor;
+    nameEl.style.textShadow = hcpA > hcpB
+      ? '0 0 18px rgba(231,42,110,0.7), 0 0 40px rgba(231,42,110,0.3)'
+      : '0 0 18px rgba(83,108,187,0.7), 0 0 40px rgba(83,108,187,0.3)';
+  }
+  if (numEl) {
+    numEl.style.color = favoredColor;
+    numEl.style.textShadow = hcpA > hcpB
+      ? '0 0 10px rgba(231,42,110,0.9), 0 0 30px rgba(231,42,110,0.6), 0 0 70px rgba(231,42,110,0.3)'
+      : '0 0 10px rgba(83,108,187,0.9), 0 0 30px rgba(83,108,187,0.6), 0 0 70px rgba(83,108,187,0.3)';
+  }
+  if (pinsLblEl) pinsLblEl.textContent = diff === 0 ? 'EVEN MATCH' : 'PIN ADVANTAGE';
+
+  // Per-player breakdown (compact)
+  let breakdown = '';
+  [...playersA.map(p=>({...p,side:'a'})), ...playersB.map(p=>({...p,side:'b'}))].forEach(p => {
+    breakdown += `<div style="display:flex;justify-content:space-between;align-items:center;padding:0.35em 0.5em;border-bottom:1px solid rgba(255,255,255,0.04);">
+      <span style="font-size:0.8em;color:${p.side==='a'?'var(--red)':'var(--light-blue)'};">${p.name}</span>
+      <span style="font-size:0.8em;color:var(--yellow);font-weight:900;">+${p.handicap||0}</span>
+    </div>`;
+  });
+  if (breakdownEl) breakdownEl.innerHTML = breakdown;
+}
+
+function updateProjectionCard() {
+  const teamAName = document.getElementById('team-a-select').value;
+  const teamBName = document.getElementById('team-b-select').value;
+
+  // Use only the selected players, not the full team roster
+  const playersA = selectedPlayersA.map(n => leagueRoster.find(p => p.name === n)).filter(Boolean);
+  const playersB = selectedPlayersB.map(n => leagueRoster.find(p => p.name === n)).filter(Boolean);
+
+  if (playersA.length === 0 && playersB.length === 0) {
+    document.getElementById('projection-content').innerHTML =
+      `<div style="text-align:center;color:var(--soft-black);font-size:0.8em;padding:1.5em 0;font-family:var(--font-body);font-weight:400;">Select players to see projection</div>`;
+    return;
+  }
+
+  const totalA = playersA.reduce((s,p) => s + (p.avg||0) + (p.handicap||0), 0);
+  const totalB = playersB.reduce((s,p) => s + (p.avg||0) + (p.handicap||0), 0);
+  const winner = totalA >= totalB ? (teamAName || 'TEAM A') : (teamBName || 'TEAM B');
+  const winnerColor = totalA >= totalB ? 'var(--red)' : 'var(--light-blue)';
+
+  let html = '';
+  [['a', playersA, teamAName || 'TEAM A'], ['b', playersB, teamBName || 'TEAM B']].forEach(([side, players, name]) => {
+    if (players.length === 0) return;
+    const total = players.reduce((s,p) => s+(p.avg||0)+(p.handicap||0), 0);
+    html += `<div style="background:var(--dark-black);border-radius:0.5em;padding:0.8em;margin-bottom:0.6em;">
+      <div style="color:${side==='a'?'var(--red)':'var(--light-blue)'};font-size:0.8em;margin-bottom:0.4em;font-weight:700;letter-spacing:0.06em;">${name.toUpperCase()}</div>`;
+    players.forEach(p => {
+      html += `<div style="display:flex;justify-content:space-between;font-size:0.75em;color:var(--smoke);padding:0.2em 0;">
+        <span>${p.name}</span>
+        <span>AVG <strong style="color:var(--white-smoke);">${Math.round(p.avg)}</strong>&nbsp;<span style="color:var(--yellow);">+${p.handicap}</span></span>
+      </div>`;
+    });
+    html += `<div style="border-top:1px solid var(--soft-black);margin-top:0.4em;padding-top:0.35em;display:flex;justify-content:space-between;align-items:center;">
+      <span style="font-size:0.72em;color:var(--smoke);letter-spacing:0.08em;">PROJECTED</span>
+      <span style="color:${side==='a'?'var(--red)':'var(--light-blue)'};font-weight:900;font-size:1em;">${total}</span>
+    </div></div>`;
+  });
+  if (playersA.length > 0 && playersB.length > 0) {
+    html += `<div style="background:${winnerColor};color:white;text-align:center;padding:0.55em;border-radius:0.35em;font-size:0.85em;font-weight:900;letter-spacing:0.08em;">EDGE: ${winner.toUpperCase()}</div>`;
+  }
+  document.getElementById('projection-content').innerHTML = html;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DOOR PANELS
+// ─────────────────────────────────────────────────────────────────────────────
+
+function openDoor(doorId) {
+  const doors = document.querySelectorAll('.door-card');
+  doors.forEach(d => {
+    const content = d.querySelector('.door-content');
+    if (content && content.id === doorId) {
+      d.classList.add('open');
+    }
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GAME LOCK (FRAME MODE)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function lockGameOrder() {
+  const active = bowlers.filter(b => b.active);
+  if (active.length === 0) { alert('No bowlers set to active'); return; }
+
+  gameStarted = true;
+  lockedOrder = active.map(b => b.id);
+  activeBowlerIdx = 0;
+
+  const lockBtn = document.getElementById('lock-in-btn-actual');
+  if (lockBtn) {
+    lockBtn.textContent = 'GAME LOCKED';
+    lockBtn.classList.add('locked');
+    lockBtn.disabled = true;
+  }
+}
+
+function advanceActiveBowler() {
+  activeBowlerIdx = (activeBowlerIdx + 1) % lockedOrder.length;
+  bowlers.forEach(b => { b.active = (b.id === lockedOrder[activeBowlerIdx]); renderBowler(b); });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// INIT — pre-parse schedule so intro screen shows current week immediately
+// ─────────────────────────────────────────────────────────────────────────────
+
+buildPins([0,1,2,3,4,5,6,7,8,9]);
+
+// Week label set at top of script via LEAGUE_WEEK constant.
+</script>
+</body>
+</html>
