@@ -1592,10 +1592,62 @@ body {
 // EMBEDDED LEAGUE DATA — UPDATE THESE EACH WEEK
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const LEAGUE_WEEK = 'WEEK 10'; // ← change this every week
+const LEAGUE_WEEK = 'WEEK 10'; // ← fallback if sheet can't be reached
 
-// Set week on intro badge immediately — runs before anything else can fail
+// Set week on intro badge immediately as fallback
 document.getElementById('intro-week-label').textContent = LEAGUE_WEEK;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GOOGLE SHEETS LIVE DATA
+// Update these GIDs if tabs ever change. Sheet ID stays the same.
+// ─────────────────────────────────────────────────────────────────────────────
+const SHEET_BASE = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRT1FDsfXFCtxT8m8Eo0guOyGEhfOUDJhiFsYe1BlN_hZV3InlRtil0lqSanZ1LwdTr5q_sJc4BDZrn/pub?single=true&output=csv';
+const SHEET_URLS = {
+  roster:   SHEET_BASE + '&gid=61',         // Leaderboard tab
+  handicap: SHEET_BASE + '&gid=639840852',  // Scorecard Print tab
+  schedule: SHEET_BASE + '&gid=62',         // Schedule tab
+};
+
+let dataReady = false;
+
+async function loadSheetData() {
+  const weekEl   = document.getElementById('intro-week-label');
+  const powerBtn = document.getElementById('powerBtn');
+
+  // Show loading state, disable button until ready
+  if (weekEl)   weekEl.textContent = 'LOADING...';
+  if (powerBtn) { powerBtn.style.opacity = '0.4'; powerBtn.style.pointerEvents = 'none'; }
+
+  try {
+    const [rosterCSV, handicapCSV, scheduleCSV] = await Promise.all([
+      fetch(SHEET_URLS.roster).then(r   => { if (!r.ok)   throw new Error('roster');   return r.text(); }),
+      fetch(SHEET_URLS.handicap).then(r => { if (!r.ok)   throw new Error('handicap'); return r.text(); }),
+      fetch(SHEET_URLS.schedule).then(r => { if (!r.ok)   throw new Error('schedule'); return r.text(); }),
+    ]);
+
+    leagueRoster = parseRosterCSV(rosterCSV);
+    applyHandicapSheet(handicapCSV);
+    scheduleData = parseScheduleCSV(scheduleCSV);
+
+    // Pull week from first cell of live schedule sheet
+    const week = scheduleCSV.trim().split('\n')[0].split(',')[0].trim();
+    if (weekEl) weekEl.textContent = week ? week.toUpperCase() : LEAGUE_WEEK;
+
+    console.log(`Live data loaded — ${leagueRoster.length} players, ${scheduleData.week}`);
+  } catch (err) {
+    // Fallback to embedded constants (works offline / local file)
+    console.warn('Live sheet fetch failed — using embedded fallback data.', err.message);
+    leagueRoster = parseRosterCSV(ROSTER_CSV);
+    applyHandicapSheet(HANDICAP_CSV);
+    scheduleData = parseScheduleCSV(SCHEDULE_CSV);
+    if (weekEl) weekEl.textContent = LEAGUE_WEEK;
+  }
+
+  // Data is ready — re-enable button and populate matchup picker
+  dataReady = true;
+  if (powerBtn) { powerBtn.style.opacity = '1'; powerBtn.style.pointerEvents = ''; }
+  populateMatchupPicker();
+}
 
 const ROSTER_CSV = `,,,,,,,,
 ,,,League Average,132.91,,,,
@@ -2215,6 +2267,7 @@ function onYourTeamChange(teamName) {
                font-size:0.88em; letter-spacing:0.05em; cursor:pointer; width:100%;
                transition:border-color 0.15s, background 0.15s;">
         <span style="color:var(--yellow);">GAME ${i + 1}</span>
+        <span style="color:var(--smoke); font-size:0.85em;">${g.lane}</span>
         <span style="color:var(--smoke); font-size:0.85em;">${g.time}</span>
         <span style="color:var(--light-blue);">vs ${g.opponent}</span>
       </button>`).join('');
@@ -2264,14 +2317,16 @@ function selectMatchupGame(gameIdx) {
 }
 
 function initDashboard() {
-  // Parse all embedded data
-  leagueRoster = parseRosterCSV(ROSTER_CSV);
-  applyHandicapSheet(HANDICAP_CSV);
-  scheduleData = parseScheduleCSV(SCHEDULE_CSV);
+  // Data already loaded by loadSheetData() — use it directly.
+  // If somehow called before load finished, fall back to embedded constants.
+  if (!dataReady) {
+    leagueRoster = parseRosterCSV(ROSTER_CSV);
+    applyHandicapSheet(HANDICAP_CSV);
+    scheduleData = parseScheduleCSV(SCHEDULE_CSV);
+    populateMatchupPicker();
+  }
 
-  // Populate matchup picker dropdowns
-  populateMatchupPicker();
-  populateTeamSelects(); // keep existing team selects populated for compatibility
+  populateTeamSelects();
 
   // Hide intro, show dashboard
   document.getElementById('intro').style.display = 'none';
@@ -3075,7 +3130,8 @@ function advanceActiveBowler() {
 
 buildPins([0,1,2,3,4,5,6,7,8,9]);
 
-// Week label set at top of script via LEAGUE_WEEK constant.
+// Fetch live data from Google Sheets — falls back to embedded constants if offline
+loadSheetData();
 </script>
 </body>
 </html>
