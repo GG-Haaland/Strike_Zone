@@ -1350,6 +1350,16 @@ body {
         </div>
       </div>
 
+      <!-- TOP BOWLS — highest individual scores for the selected week (past only) -->
+      <div class="card" id="top-bowls-card" style="display:none;">
+        <div class="card__container">
+          <div class="card-titlebar">
+            <span class="card-titlebar__text" id="top-bowls-title">TOP BOWLS</span>
+          </div>
+          <div id="top-bowls-panel" style="font-size:0.85em; color:var(--smoke);"></div>
+        </div>
+      </div>
+
       <!-- TEAM A ROSTER CARD -->
       <div class="team-roster-card side-a">
         <div class="team-roster-header">
@@ -1908,6 +1918,68 @@ async function showWeekPanel(teamData, weekIndex) {
   panel.innerHTML = html || '<div style="color:var(--soft-black); font-size:0.82em; font-family:var(--font-body); font-weight:400;">No matchup data</div>';
 }
 
+// ── TOP BOWLS — load all team tabs, extract top 5 individual scores for a week ──
+async function showTopBowls(weekNum) {
+  const card  = document.getElementById('top-bowls-card');
+  const panel = document.getElementById('top-bowls-panel');
+  const title = document.getElementById('top-bowls-title');
+  if (!card || !panel) return;
+
+  // Only show for past weeks (weekNum <= current real week)
+  const today = new Date();
+  const weekDate = weekDateMap[weekNum];
+  if (weekDate && weekDate > today) {
+    card.style.display = 'none';
+    return;
+  }
+
+  if (title) title.textContent = `TOP BOWLS WEEK ${weekNum}`;
+  card.style.display = '';
+  panel.innerHTML = '<div style="color:var(--soft-black); font-size:0.82em; padding:0.3em 0;">Loading scores…</div>';
+
+  // Load ALL team tabs in parallel (cached after first call)
+  const teamNames = Object.keys(TEAM_GIDS).filter(t => !/ghost\s*team/i.test(t));
+  const teamDatas = await Promise.all(
+    teamNames.map(t => loadTeamData(t).catch(() => null))
+  );
+
+  // Collect every individual score for this week across all teams
+  const allScores = []; // { name, team, score }
+  teamDatas.forEach((data, i) => {
+    if (!data) return;
+    const teamName = data.teamName || teamNames[i];
+    const weekRows = data.weeks.filter(w => w.weekNum === weekNum);
+    weekRows.forEach(row => {
+      Object.entries(row.scores).forEach(([playerName, score]) => {
+        if (score !== null && score > 0) {
+          allScores.push({ name: playerName, team: teamName, score });
+        }
+      });
+    });
+  });
+
+  if (allScores.length === 0) {
+    panel.innerHTML = '<div style="color:var(--soft-black); font-size:0.82em; padding:0.3em 0;">No scores recorded for this week</div>';
+    return;
+  }
+
+  // Sort descending by score, take top 5
+  allScores.sort((a, b) => b.score - a.score);
+  const top5 = allScores.slice(0, 5);
+
+  const medalColors = ['var(--yellow)', '#c0c0c0', '#cd7f32', 'var(--smoke)', 'var(--smoke)'];
+  panel.innerHTML = top5.map((s, i) => `
+    <div style="display:flex; align-items:center; gap:0.5em; padding:0.35em 0; ${i < top5.length - 1 ? 'border-bottom:1px solid rgba(255,255,255,0.04);' : ''}">
+      <span style="color:${medalColors[i]}; font-weight:900; font-size:1.1em; min-width:1.3em; text-align:center;">${i + 1}</span>
+      <div style="flex:1; min-width:0;">
+        <div style="color:var(--white-smoke); font-weight:700; font-size:0.92em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${s.name}</div>
+        <div style="color:var(--soft-black); font-size:0.72em; text-transform:uppercase; letter-spacing:0.06em;">${s.team}</div>
+      </div>
+      <span style="color:var(--yellow); font-weight:900; font-size:1.15em; letter-spacing:0.02em;">${s.score}</span>
+    </div>
+  `).join('');
+}
+
 // ── Immediate init: show correct week + date from weekDateMap before data loads ──
 (function initIntroDisplay() {
   // Find the current week by matching today's date to weekDateMap
@@ -2076,6 +2148,7 @@ async function loadSheetData() {
   if (selectedTeamName && teamDataCache[selectedTeamName]) {
     showWeekPanel(teamDataCache[selectedTeamName], currentWeekIndex);
   }
+  showTopBowls(currentWeekIndex + 1);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -2509,6 +2582,7 @@ function setActiveWeek(idx) {
     if (selectedTeamName && teamDataCache[selectedTeamName]) {
       showWeekPanel(teamDataCache[selectedTeamName], currentWeekIndex);
     }
+    showTopBowls(currentWeekIndex + 1);
     // Always refresh game buttons when dashboard is visible (week changed = new matchups)
     if (isDashboardVisible && selectedTeamName) {
       const sel = document.getElementById('your-team-select');
@@ -2694,6 +2768,7 @@ async function initDashboard() {
       if (!data) return;
       applyTeamTabData(data);
       showWeekPanel(data, currentWeekIndex);
+      showTopBowls(currentWeekIndex + 1);
       // Rebuild picker then always re-trigger team so game buttons are fresh
       populateMatchupPicker();
       const sel2 = document.getElementById('your-team-select');
