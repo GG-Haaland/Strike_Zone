@@ -1360,6 +1360,11 @@ body {
         </div>
       </div>
 
+      <!-- HANDICAP SHEET BUTTON -->
+      <button class="contact-btn" onclick="showHandicapPage()" style="margin-bottom:0; padding:0.6em; font-size:0.88em; letter-spacing:0.12em;">
+        HANDICAP SHEET
+      </button>
+
       <!-- TEAM A ROSTER CARD -->
       <div class="team-roster-card side-a">
         <div class="team-roster-header">
@@ -1549,6 +1554,43 @@ body {
     <button class="cta-red-btn"    onclick="resetGame()"    style="white-space:nowrap;">RESET</button>
   </div>
 
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     HANDICAP SHEET PAGE
+═══════════════════════════════════════════════════════ -->
+<div id="handicap-page" style="display:none; flex-direction:column; min-height:100vh; padding:1.2em; max-width:480px; margin:0 auto;">
+  <!-- Back button -->
+  <button onclick="hideHandicapPage()" style="
+    background:none; border:1px solid var(--soft-black); color:var(--smoke); border-radius:0.35em;
+    padding:0.45em 0.9em; font-family:var(--font-main); font-size:0.82em; font-weight:700;
+    letter-spacing:0.1em; cursor:pointer; align-self:flex-start; margin-bottom:0.8em;
+    transition:border-color 0.15s, color 0.15s;"
+    onmouseover="this.style.borderColor='var(--smoke)';this.style.color='var(--white-smoke)'"
+    onmouseout="this.style.borderColor='var(--soft-black)';this.style.color='var(--smoke)'"
+  >&#9664; BACK</button>
+
+  <!-- Title -->
+  <div style="text-align:center; margin-bottom:1em;">
+    <div style="font-family:var(--font-main); font-size:1.4em; font-weight:900; color:var(--yellow); letter-spacing:0.1em; text-transform:uppercase;">HANDICAP SHEET</div>
+    <div style="font-family:var(--font-body); font-size:0.78em; color:var(--soft-black); margin-top:0.2em;">Select a team to view player handicaps</div>
+  </div>
+
+  <!-- Team selector -->
+  <select id="hcp-page-team-select" onchange="onHcpTeamChange(this.value)" style="
+    width:100%; padding:0.6em 0.8em; margin-bottom:1em;
+    background:var(--dark-black); color:var(--white-smoke); border:1px solid var(--soft-black);
+    border-radius:0.35em; font-family:var(--font-main); font-size:0.95em; font-weight:700;
+    letter-spacing:0.05em; cursor:pointer; appearance:none;
+    background-image:url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23c4c4c4%22 stroke-width=%222.5%22><polyline points=%226 9 12 15 18 9%22/></svg>');
+    background-repeat:no-repeat; background-position:right 0.8em center;">
+    <option value="">— SELECT TEAM —</option>
+  </select>
+
+  <!-- Loading / player list -->
+  <div id="hcp-page-content" style="flex:1;">
+    <div style="color:var(--soft-black); font-size:0.85em; text-align:center; padding:2em 0; font-family:var(--font-body);">Choose a team above</div>
+  </div>
 </div>
 
 
@@ -1916,6 +1958,90 @@ async function showWeekPanel(teamData, weekIndex) {
   }
 
   panel.innerHTML = html || '<div style="color:var(--soft-black); font-size:0.82em; font-family:var(--font-body); font-weight:400;">No matchup data</div>';
+}
+
+// ── HANDICAP SHEET PAGE ──────────────────────────────────────────────────────
+function showHandicapPage() {
+  document.getElementById('dashboard').style.display = 'none';
+  const page = document.getElementById('handicap-page');
+  page.style.display = 'flex';
+
+  // Populate team select with all teams
+  const sel = document.getElementById('hcp-page-team-select');
+  const teams = Object.keys(TEAM_GIDS).filter(t => !/ghost\s*team/i.test(t)).sort();
+  sel.innerHTML = '<option value="">— SELECT TEAM —</option>' +
+    teams.map(t => `<option value="${t}">${t}</option>`).join('');
+
+  // Pre-select user's team if set
+  if (selectedTeamName) {
+    sel.value = selectedTeamName;
+    onHcpTeamChange(selectedTeamName);
+  }
+}
+
+function hideHandicapPage() {
+  document.getElementById('handicap-page').style.display = 'none';
+  document.getElementById('dashboard').style.display = 'flex';
+}
+
+async function onHcpTeamChange(teamName) {
+  const content = document.getElementById('hcp-page-content');
+  if (!teamName) {
+    content.innerHTML = '<div style="color:var(--soft-black); font-size:0.85em; text-align:center; padding:2em 0; font-family:var(--font-body);">Choose a team above</div>';
+    return;
+  }
+
+  content.innerHTML = '<div style="color:var(--soft-black); font-size:0.85em; text-align:center; padding:2em 0; font-family:var(--font-body);">Loading…</div>';
+
+  // Load team tab data (cached after first call)
+  const data = await loadTeamData(teamName).catch(() => null);
+
+  // Gather players — prefer team tab data (has calculated handicap), fall back to leagueRoster
+  let players = [];
+  if (data && data.players && data.players.length > 0) {
+    players = data.players.filter(p => p.avg > 0).map(p => ({
+      name: p.name,
+      avg: Math.round(p.avg),
+      handicap: Math.round(p.handicap),
+    }));
+  }
+  // Supplement with leagueRoster players not already in the list
+  const normStr = s => (s || '').toLowerCase().trim();
+  const normTeam = t => normStr(t);
+  const existing = new Set(players.map(p => normStr(p.name)));
+  const rosterPlayers = leagueRoster
+    .filter(p => normTeam(p.team) === normTeam(teamName) && p.avg > 0 && !existing.has(normStr(p.name)))
+    .map(p => ({ name: p.name, avg: Math.round(p.avg), handicap: Math.round(p.handicap) }));
+  players = [...players, ...rosterPlayers];
+
+  if (players.length === 0) {
+    content.innerHTML = '<div style="color:var(--soft-black); font-size:0.85em; text-align:center; padding:2em 0; font-family:var(--font-body);">No player data available for this team</div>';
+    return;
+  }
+
+  // Sort by handicap descending (highest handicap first)
+  players.sort((a, b) => b.handicap - a.handicap);
+
+  // Render table
+  content.innerHTML = `
+    <div style="border:1px solid var(--soft-black); border-radius:0.4em; overflow:hidden;">
+      <div style="display:grid; grid-template-columns:1fr auto auto; gap:0; background:var(--medium-black);">
+        <div style="padding:0.5em 0.7em; font-family:var(--font-main); font-size:0.78em; font-weight:900; color:var(--smoke); letter-spacing:0.1em; text-transform:uppercase;">PLAYER</div>
+        <div style="padding:0.5em 0.7em; font-family:var(--font-main); font-size:0.78em; font-weight:900; color:var(--smoke); letter-spacing:0.1em; text-transform:uppercase; text-align:center; min-width:3.5em;">AVG</div>
+        <div style="padding:0.5em 0.7em; font-family:var(--font-main); font-size:0.78em; font-weight:900; color:var(--yellow); letter-spacing:0.1em; text-transform:uppercase; text-align:center; min-width:3.5em;">HCP</div>
+      </div>
+      ${players.map((p, i) => `
+        <div style="display:grid; grid-template-columns:1fr auto auto; gap:0; ${i % 2 === 0 ? 'background:var(--dark-black);' : 'background:rgba(37,37,47,0.5);'} ${i < players.length - 1 ? 'border-bottom:1px solid rgba(255,255,255,0.03);' : ''}">
+          <div style="padding:0.45em 0.7em; font-family:var(--font-body); font-size:0.88em; color:var(--white-smoke); font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${p.name}</div>
+          <div style="padding:0.45em 0.7em; font-family:var(--font-main); font-size:0.9em; color:var(--smoke); font-weight:700; text-align:center; min-width:3.5em;">${p.avg}</div>
+          <div style="padding:0.45em 0.7em; font-family:var(--font-main); font-size:0.9em; color:var(--green); font-weight:900; text-align:center; min-width:3.5em;">${p.handicap}</div>
+        </div>
+      `).join('')}
+    </div>
+    <div style="text-align:center; margin-top:0.6em; font-size:0.72em; color:var(--soft-black); font-family:var(--font-body);">
+      Handicap = 70% × (200 − Avg)
+    </div>
+  `;
 }
 
 // ── TOP BOWLS — load all team tabs, extract top 5 individual scores for a week ──
