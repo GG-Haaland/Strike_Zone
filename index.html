@@ -1678,12 +1678,23 @@ function parseTeamTab(csv) {
   // Separate game rows from stats rows
   const gameRows = [];
   let statsStart = -1;
+  let lastWeekNum = 0; // carry forward for multi-game weeks (second row often has blank week cell)
   for (let i = hdrIdx + 1; i < rows.length; i++) {
     const row = rows[i];
     const label5 = (row[5] || '').trim();
     if (/^(total|average|handicap|high|std\s*dev)/i.test(label5)) { statsStart = i; break; }
-    const wk = parseInt(row[1]);
-    if (isNaN(wk)) continue;
+    let wk = parseInt(row[1]);
+    if (isNaN(wk)) {
+      // Second (or third) game in same week — spreadsheet often leaves week cell blank.
+      // Reuse the last valid week number if there's a non-empty opponent column.
+      if (lastWeekNum > 0 && label5 && !/^(bye|open|byes?)\s*$/i.test(label5)) {
+        wk = lastWeekNum;
+      } else {
+        continue;
+      }
+    } else {
+      lastWeekNum = wk;
+    }
     const scores = {};
     playerCols.forEach(p => {
       const v = parseInt((row[p.col] || '').replace(/[^0-9]/g, ''));
@@ -1694,7 +1705,7 @@ function parseTeamTab(csv) {
       date:     (row[2] || '').trim(),
       time:     (row[3] || '').trim(),
       lane:     (row[4] || '').trim(),
-      opponent: (row[5] || '').trim(),
+      opponent: label5,
       scores,
       wlt: wltCol >= 0 ? (row[wltCol] || '').trim() : '',
     });
@@ -1768,7 +1779,7 @@ function applyTeamTabData(data) {
 }
 
 // Show a week-results panel for the selected team + week inside the dashboard
-function showWeekPanel(teamData, weekIndex) {
+async function showWeekPanel(teamData, weekIndex) {
   const panel = document.getElementById('week-results-panel');
   const titleEl = document.getElementById('week-results-title');
   if (!panel) return;
@@ -1791,32 +1802,74 @@ function showWeekPanel(teamData, weekIndex) {
 
   let html = '';
   if (isPast) {
-    // Past week — show results with scores
-    rows.forEach(r => {
+    // Load all opponents' team data in parallel so we can show their individual scores
+    const oppDatas = await Promise.all(
+      rows.map(r => r.opponent ? loadTeamData(r.opponent).catch(() => null) : Promise.resolve(null))
+    );
+
+    const myTeamName = teamData ? teamData.teamName : '';
+    const normStr = s => (s || '').toLowerCase().trim();
+
+    rows.forEach((r, idx) => {
       const wltColor = r.wlt === 'W' ? 'var(--green)' : r.wlt === 'L' ? 'var(--red)' : 'var(--yellow)';
       const wltLabel = r.wlt === 'W' ? 'WIN' : r.wlt === 'L' ? 'LOSS' : r.wlt === 'T' ? 'TIE' : '';
+      const gameLabel = rows.length > 1 ? `GAME ${idx + 1} &mdash; ` : '';
+
+      // Your team's player score chips (yellow)
+      const myScoreChips = Object.entries(r.scores)
+        .filter(([, v]) => v !== null)
+        .map(([name, score]) =>
+          `<div style="background:var(--dark-black); border-radius:0.3em; padding:0.22em 0.5em; display:flex; gap:0.45em; align-items:center;">
+            <span style="color:var(--smoke); font-size:0.75em; text-transform:uppercase;">${name}</span>
+            <span style="color:var(--yellow); font-weight:900; font-size:0.95em;">${score}</span>
+          </div>`
+        ).join('');
+
+      // Opponent's player score chips (red/orange)
+      let oppScoreChips = '';
+      const oppData = oppDatas[idx];
+      if (oppData) {
+        // Find the opponent's row for this week where THEIR opponent = our team name
+        const oppWeeks = (oppData.weeks || []).filter(w => w.weekNum === r.weekNum);
+        const oppRow = oppWeeks.find(w => normStr(w.opponent) === normStr(myTeamName))
+                    || oppWeeks[idx]
+                    || oppWeeks[0]
+                    || null;
+        if (oppRow) {
+          oppScoreChips = Object.entries(oppRow.scores)
+            .filter(([, v]) => v !== null)
+            .map(([name, score]) =>
+              `<div style="background:var(--dark-black); border-radius:0.3em; padding:0.22em 0.5em; display:flex; gap:0.45em; align-items:center;">
+                <span style="color:var(--smoke); font-size:0.75em; text-transform:uppercase;">${name}</span>
+                <span style="color:#ff7a5a; font-weight:900; font-size:0.95em;">${score}</span>
+              </div>`
+            ).join('');
+        }
+      }
+
       html += `
         <div style="margin-bottom:0.65em; padding-bottom:0.55em; border-bottom:1px solid rgba(255,255,255,0.05);">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.3em;">
-            <span style="color:var(--light-blue); font-size:0.78em; letter-spacing:0.1em; text-transform:uppercase;">${r.lane || ''}&ensp;${r.time || ''}</span>
+            <span style="color:var(--light-blue); font-size:0.78em; letter-spacing:0.1em; text-transform:uppercase;">${gameLabel}${r.lane || ''}&ensp;${r.time || ''}</span>
             ${wltLabel ? `<span style="color:${wltColor}; font-size:0.82em; font-weight:900; letter-spacing:0.12em; background:rgba(255,255,255,0.06); padding:0.15em 0.5em; border-radius:0.25em;">${wltLabel}</span>` : ''}
           </div>
           <div style="font-size:0.78em; color:var(--smoke); margin-bottom:0.35em; letter-spacing:0.05em;">vs&ensp;<span style="color:var(--white-smoke); font-weight:700;">${r.opponent}</span></div>
+          ${myScoreChips ? `
+          <div style="font-size:0.7em; color:var(--soft-black); letter-spacing:0.08em; text-transform:uppercase; margin-bottom:0.18em;">YOUR TEAM</div>
+          <div style="display:flex; flex-wrap:wrap; gap:0.3em; margin-bottom:${oppScoreChips ? '0.45em' : '0'};">
+            ${myScoreChips}
+          </div>` : ''}
+          ${oppScoreChips ? `
+          <div style="font-size:0.7em; color:var(--soft-black); letter-spacing:0.08em; text-transform:uppercase; margin-bottom:0.18em;">${r.opponent.toUpperCase()}</div>
           <div style="display:flex; flex-wrap:wrap; gap:0.3em;">
-            ${Object.entries(r.scores).filter(([,v]) => v !== null).map(([name, score]) =>
-              `<div style="background:var(--dark-black); border-radius:0.3em; padding:0.22em 0.5em; display:flex; gap:0.45em; align-items:center;">
-                <span style="color:var(--smoke); font-size:0.75em; text-transform:uppercase;">${name}</span>
-                <span style="color:var(--yellow); font-weight:900; font-size:0.95em;">${score}</span>
-              </div>`
-            ).join('')}
-          </div>
+            ${oppScoreChips}
+          </div>` : ''}
         </div>`;
     });
   } else {
     // Future week — show matchup preview with projected handicap info
-    rows.forEach(r => {
-      // Look up opponent projected handicap from leagueRoster (case-insensitive fallback)
-      const normTeam = t => (t || '').toLowerCase().trim();
+    const normTeam = t => (t || '').toLowerCase().trim();
+    rows.forEach((r, idx) => {
       const oppName = r.opponent;
       const myName  = teamData ? teamData.teamName : '';
       let oppPlayers = leagueRoster.filter(p => p.team === oppName);
@@ -1825,10 +1878,11 @@ function showWeekPanel(teamData, weekIndex) {
       let myPlayers = leagueRoster.filter(p => p.team === myName);
       if (!myPlayers.length) myPlayers = leagueRoster.filter(p => normTeam(p.team) === normTeam(myName));
       const myHcp = myPlayers.reduce((sum, p) => sum + (p.handicap || 0), 0);
+      const gameLabel = rows.length > 1 ? `GAME ${idx + 1} &mdash; ` : '';
 
       html += `
         <div style="margin-bottom:0.65em; padding-bottom:0.55em; border-bottom:1px solid rgba(255,255,255,0.05);">
-          <div style="font-size:0.78em; color:var(--light-blue); letter-spacing:0.1em; text-transform:uppercase; margin-bottom:0.28em;">${r.lane || ''}&ensp;${r.time || ''}</div>
+          <div style="font-size:0.78em; color:var(--light-blue); letter-spacing:0.1em; text-transform:uppercase; margin-bottom:0.28em;">${gameLabel}${r.lane || ''}&ensp;${r.time || ''}</div>
           <div style="font-size:0.88em; color:var(--smoke); margin-bottom:0.45em;">vs <span style="color:var(--white-smoke); font-weight:700;">${r.opponent}</span></div>
           ${myHcp || oppHcp ? `
           <div style="display:grid; grid-template-columns:1fr auto 1fr; gap:0.4em; align-items:center; text-align:center; font-size:0.8em;">
