@@ -1867,18 +1867,22 @@ async function showWeekPanel(teamData, weekIndex) {
         </div>`;
     });
   } else {
-    // Future week — show matchup preview with team average game
+    // Future week — show matchup preview with team average game from Standings tab
     const normTeam = t => (t || '').toLowerCase().trim();
+    // Helper: look up team avg from teamAvgMap (case-insensitive fallback)
+    const lookupTeamAvg = (name) => {
+      if (teamAvgMap[name]) return teamAvgMap[name];
+      const lower = normTeam(name);
+      for (const [k, v] of Object.entries(teamAvgMap)) {
+        if (normTeam(k) === lower) return v;
+      }
+      return 0;
+    };
     rows.forEach((r, idx) => {
       const oppName = r.opponent;
       const myName  = teamData ? teamData.teamName : '';
-      let oppPlayers = leagueRoster.filter(p => p.team === oppName);
-      if (!oppPlayers.length) oppPlayers = leagueRoster.filter(p => normTeam(p.team) === normTeam(oppName));
-      let myPlayers = leagueRoster.filter(p => p.team === myName);
-      if (!myPlayers.length) myPlayers = leagueRoster.filter(p => normTeam(p.team) === normTeam(myName));
-      // Team avg game = sum of all players' individual averages
-      const myAvg  = Math.round(myPlayers.reduce((sum, p) => sum + (p.avg || 0), 0));
-      const oppAvg = Math.round(oppPlayers.reduce((sum, p) => sum + (p.avg || 0), 0));
+      const myAvg  = lookupTeamAvg(myName);
+      const oppAvg = lookupTeamAvg(oppName);
       const gameLabel = rows.length > 1 ? `GAME ${idx + 1} &mdash; ` : '';
 
       html += `
@@ -1943,10 +1947,36 @@ async function showWeekPanel(teamData, weekIndex) {
 // ─────────────────────────────────────────────────────────────────────────────
 const SHEET_BASE = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRT1FDsfXFCtxT8m8Eo0guOyGEhfOUDJhiFsYe1BlN_hZV3InlRtil0lqSanZ1LwdTr5q_sJc4BDZrn/pub?single=true&output=csv';
 const SHEET_URLS = {
-  roster:   SHEET_BASE + '&gid=61',         // Leaderboard tab
-  handicap: SHEET_BASE + '&gid=639840852',  // Scorecard Print tab
-  schedule: SHEET_BASE + '&gid=62',         // Schedule tab
+  roster:    SHEET_BASE + '&gid=61',         // Leaderboard tab
+  handicap:  SHEET_BASE + '&gid=639840852',  // Scorecard Print tab
+  schedule:  SHEET_BASE + '&gid=62',         // Schedule tab
+  standings: SHEET_BASE + '&gid=0',          // Standings tab
 };
+
+// Team avg game lookup — populated from the Standings tab CSV
+// Key = team name (exact case from sheet), Value = avg game number (e.g. 391)
+let teamAvgMap = {};
+
+function parseStandingsCSV(csv) {
+  const lines = csv.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter(l => l.trim());
+  if (lines.length < 2) return {};
+
+  // Find header row — look for "Team" and "Avg." (the team avg column, not win %)
+  const header = parseCSVLine(lines[0]).map(h => h.trim().toLowerCase());
+  const teamIdx = header.findIndex(h => h === 'team');
+  // "Avg." is the team game average (distinct from "Avg" which is win percentage)
+  const avgGameIdx = header.findIndex(h => h === 'avg.');
+  if (teamIdx === -1 || avgGameIdx === -1) return {};
+
+  const map = {};
+  for (let i = 1; i < lines.length; i++) {
+    const cols = parseCSVLine(lines[i]);
+    const team = (cols[teamIdx] || '').trim();
+    const avg  = parseInt((cols[avgGameIdx] || '').replace(/[^0-9]/g, ''));
+    if (team && !isNaN(avg) && avg > 0) map[team] = avg;
+  }
+  return map;
+}
 
 // dataReady, allWeeks, currentWeekIndex declared earlier (above TEAM SELECTOR)
 
@@ -1959,17 +1989,19 @@ async function loadSheetData() {
   if (powerBtn) { powerBtn.style.opacity = '0.4'; powerBtn.style.pointerEvents = 'none'; }
 
   try {
-    // Fetch roster, handicap, schedule, AND default team tab in parallel
+    // Fetch roster, handicap, schedule, standings, AND default team tab in parallel
     const defaultTeamGid = TEAM_GIDS[selectedTeamName] || TEAM_GIDS['Gutter & Sons'];
-    const [rosterCSV, handicapCSV, scheduleCSV, defaultTeamCSV] = await Promise.all([
+    const [rosterCSV, handicapCSV, scheduleCSV, standingsCSV, defaultTeamCSV] = await Promise.all([
       fetch(SHEET_URLS.roster).then(r   => { if (!r.ok) throw new Error('roster');   return r.text(); }),
       fetch(SHEET_URLS.handicap).then(r => { if (!r.ok) throw new Error('handicap'); return r.text(); }),
       fetch(SHEET_URLS.schedule).then(r => { if (!r.ok) throw new Error('schedule'); return r.text(); }),
+      fetch(SHEET_URLS.standings).then(r => r.ok ? r.text() : '').catch(() => ''),
       fetch(SHEET_BASE + '&gid=' + defaultTeamGid).then(r => r.ok ? r.text() : '').catch(() => ''),
     ]);
 
     leagueRoster = parseRosterCSV(rosterCSV);
     applyHandicapSheet(handicapCSV);
+    if (standingsCSV) teamAvgMap = parseStandingsCSV(standingsCSV);
 
     // Parse schedule and refresh week-date map from it
     allWeeks = parseScheduleCSV(scheduleCSV);
