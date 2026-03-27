@@ -2860,7 +2860,7 @@ const PIN_COLS = [[0],[1,2],[3,4,5],[6,7,8,9]];
 
 function buildPins(standing) {
   const container = document.getElementById('pin-display');
-  container.innerHTML = '';
+  if (!container) return; // pin display not present in this layout
   PIN_COLS.forEach(col => {
     const colDiv = document.createElement('div');
     colDiv.className = 'pin-col';
@@ -3023,6 +3023,7 @@ function renderBowler(b) {
 
 function renderAll() {
   const container = document.getElementById('bowlers-grid');
+  if (!container) return;
   container.innerHTML = bowlers.map(b => buildBowlerCard(b)).join('');
 }
 
@@ -3227,6 +3228,7 @@ function saveGameToSeason() {
 
 function renderSeasonTracker() {
   const container = document.getElementById('season-body');
+  if (!container) return;
   const allNames = Object.keys(seasonData);
 
   if (allNames.length === 0) {
@@ -3269,10 +3271,11 @@ function updateTeamScores() {
   const hcpA = teamA.reduce((s, b) => s + (b.handicap || 0), 0);
   const hcpB = teamB.reduce((s, b) => s + (b.handicap || 0), 0);
 
-  document.getElementById('team-a-score').textContent = scoreA;
-  document.getElementById('team-b-score').textContent = scoreB;
-  document.getElementById('team-a-hcp-score').textContent = scoreA + hcpA;
-  document.getElementById('team-b-hcp-score').textContent = scoreB + hcpB;
+  const safeSet = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  safeSet('team-a-score', scoreA);
+  safeSet('team-b-score', scoreB);
+  safeSet('team-a-hcp-score', scoreA + hcpA);
+  safeSet('team-b-hcp-score', scoreB + hcpB);
 }
 
 function updateHandicapCard() {
@@ -3410,10 +3413,8 @@ function advanceActiveBowler() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// INIT — pre-parse schedule so intro screen shows current week immediately
+// INIT — fetch live data and pre-seed intro display
 // ─────────────────────────────────────────────────────────────────────────────
-
-buildPins([0,1,2,3,4,5,6,7,8,9]);
 
 // Fetch live data from Google Sheets — falls back to embedded constants if offline
 loadSheetData();
